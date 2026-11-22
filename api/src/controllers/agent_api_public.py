@@ -4,18 +4,25 @@ Public Agent API Controller - External API for agent interactions with Advanced 
 CRITICAL: All chat interactions are protected with prompt injection scanning.
 """
 
+import base64
 import json
 import logging
+import unicodedata
 import uuid as uuid_lib
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import lru_cache
 from uuid import UUID
 
+from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.core.database import get_async_db
 from src.middleware.agent_api_auth import require_permission
 from src.models.agent import Agent
@@ -32,7 +39,6 @@ from src.schemas.agent_api import (
     CreateConversationRequest,
     MessageFeedbackRequest,
 )
-from src.services.agents.security import decrypt_value, encrypt_value
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
 
 logger = logging.getLogger(__name__)
@@ -137,6 +143,22 @@ PUBLIC_ATTACHMENT_FIELDS = ("file_id", "file_name", "file_type", "file_size", "d
 _ATTACHMENT_TOKEN_PURPOSE = "synkora.attachment.v2"
 
 
+ATTACHMENT_TOKEN_TTL_SECONDS = 24 * 60 * 60
+
+
+@lru_cache(maxsize=1)
+def _attachment_cipher() -> Fernet:
+    """
+    A key used only for attachment tokens, derived from the app secret with a purpose label. It must not be the
+    general ``encrypt_value`` key: some endpoints return values encrypted with that key, which would let a caller
+    mint a valid token.
+    """
+    derived = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=b"synkora attachment token v2").derive(
+        settings.secret_key.encode()
+    )
+    return Fernet(base64.urlsafe_b64encode(derived))
+
+
 def _attachment_token(attachment: dict, tenant_id: UUID, conversation_id: UUID) -> str:
     """
     An opaque, encrypted and authenticated token for one uploaded file. It carries every field the model will see,
@@ -149,7 +171,7 @@ def _attachment_token(attachment: dict, tenant_id: UUID, conversation_id: UUID) 
         "conversation": str(conversation_id),
         "attachment": {field: attachment.get(field) for field in ATTACHMENT_FIELDS},
     }
-    return encrypt_value(json.dumps(payload, separators=(",", ":"), default=str))
+    return _attachment_cipher().encrypt(json.dumps(payload, separators=(",", ":"), default=str).encode()).decode()
 
 
 def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conversation_id: UUID | None):
@@ -167,8 +189,8 @@ def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conve
         if not isinstance(token, str) or not token:
             raise refused
         try:
-            payload = json.loads(decrypt_value(token))
-        except Exception:
+            payload = json.loads(_attachment_cipher().decrypt(token.encode(), ttl=ATTACHMENT_TOKEN_TTL_SECONDS))
+        except (InvalidToken, ValueError):
             raise refused from None
         if (
             not isinstance(payload, dict)
@@ -189,24 +211,28 @@ SCAN_WINDOW_CHARS = 12_000
 SCAN_WINDOW_OVERLAP = 1_000
 
 
-async def _scan_untrusted_text(text: str, api_key: AgentApiKey, client_ip: str) -> bool:
+async def _find_unsafe_text(text: str, api_key: AgentApiKey, client_ip: str, context: str) -> dict | None:
     """
-    True if every part of ``text`` passes the prompt-injection scanner. The scanner reads a limited number of
-    characters per call, so long text is scanned in overlapping windows and nothing can hide past the first one.
+    Scan all of ``text`` and return the first unsafe scan result, or None when every part is safe.
+
+    The scanner reads a limited number of characters per call, after Unicode (NFKC) normalisation that can make text
+    longer. So the whole text is normalised here first, and then scanned in overlapping windows of the normalised
+    form: nothing can hide past the first window or be pushed out of one by characters that expand.
     """
     if not text:
-        return True
+        return None
+    normalized = unicodedata.normalize("NFKC", text)
     step = SCAN_WINDOW_CHARS - SCAN_WINDOW_OVERLAP
-    for start in range(0, len(text), step):
+    for start in range(0, len(normalized), step):
         result = await advanced_prompt_scanner.scan_comprehensive_async(
-            text=text[start : start + SCAN_WINDOW_CHARS],
+            text=normalized[start : start + SCAN_WINDOW_CHARS],
             user_id=f"api_key_{api_key.id}",
             ip_address=client_ip,
-            context="agent_api_attachment",
+            context=context,
         )
         if not result["is_safe"]:
-            return False
-    return True
+            return result
+    return None
 
 
 async def _prepare_chat(
@@ -220,6 +246,9 @@ async def _prepare_chat(
     scan_result = await advanced_prompt_scanner.scan_comprehensive_async(
         text=request.message, user_id=f"api_key_{api_key.id}", ip_address=client_ip, context="agent_api_chat"
     )
+    if scan_result["is_safe"] and len(request.message) > SCAN_WINDOW_CHARS - SCAN_WINDOW_OVERLAP:
+        # The first scan only reads the start of a long message; check the rest as well
+        scan_result = await _find_unsafe_text(request.message, api_key, client_ip, "agent_api_chat") or scan_result
     if not scan_result["is_safe"]:
         logger.warning(
             f"SECURITY: Prompt injection blocked in Agent API chat. "
@@ -719,7 +748,7 @@ async def upload_attachment(
     # The file's name and text reach the model, so they get the same injection scan as a chat message
     client_ip = http_request.client.host if http_request.client else "unknown"
     untrusted = f"{attachment.get('file_name') or ''}\n{attachment.get('extracted_text') or ''}"
-    if not await _scan_untrusted_text(untrusted, api_key, client_ip):
+    if await _find_unsafe_text(untrusted, api_key, client_ip, "agent_api_attachment"):
         raise HTTPException(
             status_code=400,
             detail={

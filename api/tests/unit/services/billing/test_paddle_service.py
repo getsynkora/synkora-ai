@@ -586,6 +586,7 @@ class TestPaddleTransactionRenewals:
         assert await paddle_service._handle_transaction_completed(self._data(origin))
         paddle_service.subscription_service.renew_subscription.assert_not_called()
         assert existing.current_period_start == "old-start"
+        assert existing.cancel_at_period_end is True  # a scheduled cancellation is left alone
 
     @pytest.mark.parametrize("origin", ["web", "api", "subscription_recurring", None])
     async def test_checkout_and_recurring_renewals_start_a_new_period(self, paddle_service, origin):

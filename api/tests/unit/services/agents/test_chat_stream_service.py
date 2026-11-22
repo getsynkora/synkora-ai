@@ -1367,6 +1367,30 @@ class TestMessageIsCountedWhenTheReplyGoesOut:
 
         assert await self._consume([await generate_sse_event(event_type, {"x": 1})], stop_after=1) is False
 
+    async def test_a_completed_tool_call_counts_even_with_no_text_yet(self):
+        """Reproduces getting a tool's side effects (an email sent, data written) for free by disconnecting."""
+        from src.helpers.streaming_helpers import generate_tool_status_event
+
+        started = await generate_tool_status_event("send_email", "started")
+        completed = await generate_tool_status_event("send_email", "completed")
+        assert await self._consume([started], stop_after=1) is False
+        assert await self._consume([started, completed], stop_after=2) is True
+
+    async def test_a_finished_sub_agent_counts_but_a_started_one_does_not(self):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        start = await generate_sse_event("workflow_event", {"event_type": "sub_agent_start", "agent_name": "a"})
+        done = await generate_sse_event(
+            "workflow_event", {"event_type": "sub_agent_complete", "agent_name": "a", "output_preview": "result"}
+        )
+        assert await self._consume([start], stop_after=1) is False
+        assert await self._consume([start, done], stop_after=2) is True
+
+    async def test_an_approval_request_counts(self):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        assert await self._consume([await generate_sse_event("approval_required", {"id": "x"})], stop_after=1) is True
+
     def test_the_inner_stream_queues_the_deduction_once_and_cleans_up_in_one_shielded_step(self):
         """Reproduces a cancellation in the quota release skipping the run-lease release and the session close."""
         import ast

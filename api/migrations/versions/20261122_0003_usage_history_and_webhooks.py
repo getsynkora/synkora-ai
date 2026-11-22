@@ -41,7 +41,6 @@ def upgrade():
             sa.Column("events", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
             sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
             sa.Column("consecutive_failures", sa.Integer(), nullable=False, server_default="0"),
-            sa.Column("last_tested_at", sa.DateTime(timezone=True), nullable=True),
             sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
             sa.PrimaryKeyConstraint("id"),
         )

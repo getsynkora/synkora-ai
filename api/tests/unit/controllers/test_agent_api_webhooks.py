@@ -159,22 +159,63 @@ class TestManage:
         assert response.status_code == 409 and "Reactivate" in response.json()["detail"]
         deliver.assert_not_called()
 
+    def _claimed(self, db, claimed):
+        result = MagicMock()
+        result.first.return_value = (uuid4(),) if claimed else None
+        db.execute.return_value = result
+
     def test_an_endpoint_can_be_tested_once_a_minute(self, client, db):
         """Reproduces the test action being used to flood the delivery workers."""
-        from datetime import timedelta
-
-        endpoint = _endpoint(last_tested_at=datetime.now(UTC) - timedelta(seconds=10))
-        db.scalar.return_value = endpoint
+        db.scalar.return_value = _endpoint()
+        self._claimed(db, claimed=False)
         with patch.object(hooks, "deliver_to") as deliver:
             response = client.post(f"/api/v1/public/webhooks/{uuid4()}/test")
         assert response.status_code == 429
         deliver.assert_not_called()
 
-        endpoint.last_tested_at = datetime.now(UTC) - timedelta(seconds=hooks.TEST_COOLDOWN_SECONDS + 1)
+        self._claimed(db, claimed=True)
         with patch.object(hooks, "deliver_to") as deliver:
             assert client.post(f"/api/v1/public/webhooks/{uuid4()}/test").status_code == 202
         deliver.assert_called_once()
-        assert (datetime.now(UTC) - endpoint.last_tested_at).total_seconds() < 5
+
+    def test_the_cooldown_is_one_conditional_update(self, client, db):
+        """Two concurrent tests cannot both pass a read-then-write check: the claim is a single UPDATE."""
+        endpoint = _endpoint()
+        db.scalar.return_value = endpoint
+        self._claimed(db, claimed=True)
+        with patch.object(hooks, "deliver_to"):
+            client.post(f"/api/v1/public/webhooks/{uuid4()}/test")
+        sql = str(db.execute.call_args[0][0])
+        assert sql.startswith("UPDATE webhook_endpoints") and "last_tested_at IS NULL OR" in sql and "RETURNING" in sql
+
+    def test_switching_back_on_is_limited_to_once_an_hour(self, client, db):
+        endpoint = _endpoint(is_active=False, consecutive_failures=10)
+        db.scalar.return_value = endpoint
+        self._claimed(db, claimed=False)
+        assert client.post(f"/api/v1/public/webhooks/{uuid4()}/reactivate").status_code == 429
+        assert endpoint.is_active is False
+
+    async def test_one_tenant_runs_one_registration_lookup_at_a_time(self):
+        """Reproduces one tenant filling the shared lookup pool and blocking every other tenant's registration."""
+        import asyncio
+        import threading
+
+        release = threading.Event()
+
+        def slow_lookup(_url):
+            release.wait(2)
+            return None
+
+        tenant, other = uuid4(), uuid4()
+        with patch.object(hooks, "destination_error", side_effect=slow_lookup):
+            first = asyncio.create_task(hooks._check_destination("https://a.example.com", tenant))
+            await asyncio.sleep(0.05)
+            second = await hooks._check_destination("https://b.example.com", tenant)
+            release.set()
+            assert await first is None
+        assert "still running" in second
+        with patch.object(hooks, "destination_error", return_value=None):
+            assert await hooks._check_destination("https://c.example.com", other) is None
 
     def test_test_sends_a_ping(self, client, db):
         endpoint = _endpoint()

@@ -70,8 +70,15 @@ _PERMISSION_PATTERN = re.compile(r"\*|[a-z0-9_-]{1,40}(:[a-z0-9_-]{1,40})?")
 MAX_PERMISSIONS_PER_KEY = 20
 
 
+def holds_operator_permissions(permissions: list[str] | None) -> bool:
+    """True if a stored key has a permission only a platform operator may grant (e.g. tenants:manage)."""
+    return any(str(p).split(":", 1)[0] in OPERATOR_ONLY_PERMISSION_PREFIXES for p in (permissions or []))
+
+
 def validate_requested_permissions(permissions: list[str]) -> list[str]:
     """Check permissions asked for when a key is created or changed. Raises ValueError with the reason."""
+    if not permissions:
+        raise ValueError("A key needs at least one permission; switch a key off with is_active instead")
     if len(permissions) > MAX_PERMISSIONS_PER_KEY:
         raise ValueError(f"At most {MAX_PERMISSIONS_PER_KEY} permissions per key")
     for permission in permissions:

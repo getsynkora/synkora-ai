@@ -827,10 +827,11 @@ class PaddleService:
                 tenant_subscription.paddle_customer_id = customer_id
                 tenant_subscription.payment_provider = "paddle"
                 tenant_subscription.status = SubscriptionStatus.ACTIVE
-                # A paid (re-)subscription replaces any earlier request to cancel at period end
-                tenant_subscription.cancel_at_period_end = False
-                tenant_subscription.cancelled_at = None
                 if starts_new_period:
+                    # A paid (re-)subscription replaces an earlier request to cancel at period end. A one-off charge
+                    # or a payment-method change does not, or a cancellation still scheduled at Paddle is lost here.
+                    tenant_subscription.cancel_at_period_end = False
+                    tenant_subscription.cancelled_at = None
                     tenant_subscription.current_period_start = datetime.now(UTC)
                 # Period end will be updated by subscription.updated webhook
             else:

@@ -35,3 +35,6 @@ class WebhookEndpoint(BaseModel):
     is_active = Column(Boolean, nullable=False, default=True, comment="Switched off after repeated failures")
     consecutive_failures = Column(Integer, nullable=False, default=0)
     last_tested_at = Column(sa.DateTime(timezone=True), nullable=True, comment="Last test ping, for the cooldown")
+    last_reactivated_at = Column(
+        sa.DateTime(timezone=True), nullable=True, comment="Last time it was switched back on, for the cooldown"
+    )

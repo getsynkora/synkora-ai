@@ -38,9 +38,9 @@ spec:
         image: IMAGE_PLACEHOLDER
         imagePullPolicy: Always
         command: ["celery"]
-        # Handles: email sending, in-app notifications, Slack/Teams/WhatsApp notifications, outbound webhooks.
+        # Handles: email sending, in-app notifications, Slack/Teams/WhatsApp notifications.
         # Tasks are I/O-bound and short-lived — high concurrency, low memory.
-        args: ["-A", "src.celery_app", "worker", "--loglevel=info", "-Q", "email,notifications,webhooks",
+        args: ["-A", "src.celery_app", "worker", "--loglevel=info", "-Q", "email,notifications",
                "--concurrency=4"]
         envFrom:
         - configMapRef:

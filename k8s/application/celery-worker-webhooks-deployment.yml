@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synkora-celery-worker-webhooks
+  namespace: synkora-production
+  labels:
+    app: synkora
+    component: celery-worker-webhooks
+    version: v1
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: synkora
+      component: celery-worker-webhooks
+  template:
+    metadata:
+      labels:
+        app: synkora
+        component: celery-worker-webhooks
+        version: v1
+    spec:
+      imagePullSecrets:
+      - name: ecr-registry-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: celery-worker-webhooks
+        image: IMAGE_PLACEHOLDER
+        imagePullPolicy: Always
+        command: ["celery"]
+        # Handles: outbound webhook deliveries to tenant-supplied URLs, and nothing else, so a slow or hostile
+        # receiver can only delay other webhooks. Needs outbound HTTPS (443) like the notifications worker.
+        args: ["-A", "src.celery_app", "worker", "--loglevel=info", "-Q", "webhooks",
+               "--concurrency=4"]
+        envFrom:
+        - configMapRef:
+            name: synkora-config
+        - secretRef:
+            name: synkora-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "100m"
+          limits:
+            memory: "768Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 2Gi
+      terminationGracePeriodSeconds: 60

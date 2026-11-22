@@ -14,11 +14,11 @@ import asyncio
 import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
@@ -50,14 +50,45 @@ DNS_DEADLINE_SECONDS = 5
 TEST_COOLDOWN_SECONDS = 60
 
 
-async def _check_destination(url: str) -> str | None:
-    loop = asyncio.get_running_loop()
-    try:
-        return await asyncio.wait_for(
-            loop.run_in_executor(_DNS_EXECUTOR, destination_error, url), timeout=DNS_DEADLINE_SECONDS
+REACTIVATE_COOLDOWN_SECONDS = 3600
+# One registration lookup at a time per tenant, so one tenant cannot occupy the whole lookup pool
+_tenant_dns_slots: dict[uuid.UUID, asyncio.Semaphore] = {}
+
+
+async def _check_destination(url: str, tenant_id: uuid.UUID) -> str | None:
+    slot = _tenant_dns_slots.setdefault(tenant_id, asyncio.Semaphore(1))
+    if slot.locked():
+        return "Another address check for this account is still running; try again shortly"
+    async with slot:
+        loop = asyncio.get_running_loop()
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(_DNS_EXECUTOR, destination_error, url), timeout=DNS_DEADLINE_SECONDS
+            )
+        except TimeoutError:
+            return DESTINATION_REFUSED
+
+
+async def _claim_cooldown(db: AsyncSession, endpoint_id: uuid.UUID, column, seconds: int) -> bool:
+    """
+    Atomically take a cooldown slot: one conditional UPDATE, so two concurrent requests cannot both pass.
+    Returns False while the cooldown is still running.
+    """
+    now = datetime.now(UTC)
+    claimed = await db.execute(
+        update(WebhookEndpoint)
+        .where(
+            WebhookEndpoint.id == endpoint_id,
+            or_(column.is_(None), column < now - timedelta(seconds=seconds)),
         )
-    except TimeoutError:
-        return DESTINATION_REFUSED
+        .values({column.key: now})
+        .returning(WebhookEndpoint.id)
+    )
+    if claimed.first() is None:
+        await db.rollback()
+        return False
+    await db.commit()
+    return True
 
 
 class CreateWebhookRequest(BaseModel):
@@ -119,7 +150,7 @@ async def create_webhook(
     if (existing or 0) >= MAX_ENDPOINTS_PER_TENANT:
         raise HTTPException(status_code=409, detail=f"At most {MAX_ENDPOINTS_PER_TENANT} webhook endpoints")
 
-    problem = await _check_destination(body.url)
+    problem = await _check_destination(body.url, api_key.tenant_id)
     if problem:
         raise HTTPException(status_code=400, detail=f"This URL cannot be used: {problem}")
 
@@ -178,6 +209,8 @@ async def reactivate_webhook(
 ):
     """Switch an endpoint back on after it was disabled for repeated failures. Requires permission: webhooks:manage"""
     endpoint = await _own_endpoint(db, api_key, webhook_id)
+    if not await _claim_cooldown(db, endpoint.id, WebhookEndpoint.last_reactivated_at, REACTIVATE_COOLDOWN_SECONDS):
+        raise HTTPException(status_code=429, detail="An endpoint can be switched back on once an hour")
     endpoint.is_active = True
     endpoint.consecutive_failures = 0
     await db.commit()
@@ -198,13 +231,10 @@ async def test_webhook(
         raise HTTPException(
             status_code=409, detail="This endpoint is switched off after repeated failures. Reactivate it first"
         )
-    now = datetime.now(UTC)
-    if endpoint.last_tested_at and (now - endpoint.last_tested_at).total_seconds() < TEST_COOLDOWN_SECONDS:
+    if not await _claim_cooldown(db, endpoint.id, WebhookEndpoint.last_tested_at, TEST_COOLDOWN_SECONDS):
         raise HTTPException(
             status_code=429, detail=f"An endpoint can be tested once every {TEST_COOLDOWN_SECONDS} seconds"
         )
-    endpoint.last_tested_at = now
-    await db.commit()
     event = build_event(EVENT_PING, None, {"message": "Webhook endpoint is working"})
     deliver_to(endpoint.id, event)
     return {"queued": True, "event_id": event["id"]}

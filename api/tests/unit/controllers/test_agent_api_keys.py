@@ -367,3 +367,47 @@ class TestGetApiKeyUsage:
         response = test_client.get(f"/api/v1/agent-api-keys/{uuid.uuid4()}/usage")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestOperatorIssuedKeys:
+    """Reproduces a tenant member regenerating or re-enabling the operator-issued manager key."""
+
+    MANAGER_PERMISSIONS = ["tenants:manage", "billing:read", "webhooks:manage"]
+
+    @pytest.mark.parametrize(
+        ("method", "suffix", "body"),
+        [
+            ("post", "/regenerate", None),
+            ("put", "", {"is_active": True}),
+            ("put", "", {"key_name": "renamed"}),
+            ("delete", "", None),
+        ],
+    )
+    def test_operator_keys_cannot_be_changed_from_the_dashboard(self, client, method, suffix, body):
+        test_client, tenant_id, _account, mock_db, mock_service = client
+        key_id = uuid.uuid4()
+        manager_key = _create_mock_api_key(key_id, tenant_id, permissions=self.MANAGER_PERMISSIONS, is_active=False)
+        setup_db_execute_mock(mock_db, manager_key)
+        mock_service.generate_api_key.return_value = ("sk_live_NEW", "hashed")
+
+        kwargs = {"json": body} if body is not None else {}
+        response = getattr(test_client, method)(f"/api/v1/agent-api-keys/{key_id}{suffix}", **kwargs)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "sk_live_NEW" not in response.text
+        assert manager_key.is_active is False
+        mock_db.commit.assert_not_called()
+
+    def test_ordinary_keys_can_still_be_regenerated(self, client):
+        test_client, tenant_id, _account, mock_db, mock_service = client
+        key_id = uuid.uuid4()
+        setup_db_execute_mock(mock_db, _create_mock_api_key(key_id, tenant_id, permissions=["chat"]))
+        mock_service.generate_api_key.return_value = ("sk_live_NEW", "hashed")
+        assert test_client.post(f"/api/v1/agent-api-keys/{key_id}/regenerate").status_code == status.HTTP_200_OK
+
+    def test_an_empty_permission_list_is_refused(self, client):
+        test_client, *_ = client
+        response = test_client.post(
+            "/api/v1/agent-api-keys", json={"key_name": "k", "agent_id": str(uuid.uuid4()), "permissions": []}
+        )
+        assert response.status_code == 422

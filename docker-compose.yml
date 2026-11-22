@@ -572,7 +572,41 @@ services:
       context: ./api
       dockerfile: Dockerfile.dev
     container_name: synkora-celery-worker-notifications
-    command: celery -A src.celery_app worker --loglevel=info --concurrency=8 -Q email,notifications,webhooks
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=8 -Q email,notifications
+    env_file:
+      - ./api/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ML_SERVICE_URL=http://synkora-ml:5002
+      - ML_API_KEY=${ML_API_KEY:?Set a random ML_API_KEY of at least 32 characters}
+      - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
+      - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:?Set a random SANDBOX_API_KEY of at least 32 characters}
+      - QDRANT_URL=http://qdrant:6333
+      - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
+
+      - WORKSPACE_TTL_HOURS=24
+      - WORKSPACE_MAX_SIZE_MB=2000
+    volumes:
+      - ./api:/app/api
+      - /app/api/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - synkora-network
+
+  # Webhooks queue — outbound deliveries to tenant-supplied URLs only, so a slow or hostile receiver
+  # can only delay other webhooks, never email, notifications or document processing.
+  celery-worker-webhooks:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    container_name: synkora-celery-worker-webhooks
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=4 -Q webhooks
     env_file:
       - ./api/.env
     environment:

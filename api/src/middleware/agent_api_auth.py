@@ -304,7 +304,8 @@ class HandoffAccess:
     permissions: frozenset[str] | None = None  # None denotes an authenticated account.
 
     def require(self, permission: str) -> None:
-        if self.permissions is not None and permission not in self.permissions and "*" not in self.permissions:
+        # Handoff permissions are scoped: like every scoped permission they must be listed exactly ("*" is not enough)
+        if self.permissions is not None and permission not in self.permissions:
             raise HTTPException(403, f"API key requires {permission} permission")
 
 

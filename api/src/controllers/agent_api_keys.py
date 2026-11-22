@@ -25,7 +25,7 @@ from src.schemas.agent_api import (
     UsageStats,
     UsageStatsResponse,
 )
-from src.services.agent_api.api_key_service import AgentApiKeyService
+from src.services.agent_api.api_key_service import AgentApiKeyService, holds_operator_permissions
 
 router = APIRouter(prefix="/api/v1/agent-api-keys", tags=["Agent API Keys"])
 
@@ -177,6 +177,11 @@ async def update_api_key(
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
 
+    # Keys with operator-only permissions (tenant management) are issued and managed only by a platform
+    # operator. Regenerating or re-enabling one here would hand its powers to any member of the tenant.
+    if holds_operator_permissions(api_key.permissions):
+        raise HTTPException(status_code=403, detail="This key is managed by the platform operator")
+
     # Update fields
     if request.key_name is not None:
         api_key.key_name = request.key_name
@@ -227,6 +232,11 @@ async def delete_api_key(
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
 
+    # Keys with operator-only permissions (tenant management) are issued and managed only by a platform
+    # operator. Regenerating or re-enabling one here would hand its powers to any member of the tenant.
+    if holds_operator_permissions(api_key.permissions):
+        raise HTTPException(status_code=403, detail="This key is managed by the platform operator")
+
     await db.delete(api_key)
     await db.commit()
 
@@ -255,6 +265,11 @@ async def regenerate_api_key(
 
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
+
+    # Keys with operator-only permissions (tenant management) are issued and managed only by a platform
+    # operator. Regenerating or re-enabling one here would hand its powers to any member of the tenant.
+    if holds_operator_permissions(api_key.permissions):
+        raise HTTPException(status_code=403, detail="This key is managed by the platform operator")
 
     # Regenerate key by generating new key and updating
     plain_key, hashed_key = AgentApiKeyService.generate_api_key()

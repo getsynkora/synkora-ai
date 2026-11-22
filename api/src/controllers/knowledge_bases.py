@@ -687,7 +687,8 @@ async def upload_documents(
                 # SECURITY: Comprehensive file validation (magic bytes, dangerous extensions,
                 # malicious content patterns) before any further processing.
                 try:
-                    validation_result = _kb_file_security.validate_file(
+                    validation_result = await asyncio.to_thread(
+                        _kb_file_security.validate_file,
                         file_content=content,
                         filename=file.filename or "unnamed",
                         category="document",
@@ -709,7 +710,7 @@ async def upload_documents(
                     )
 
                 # Detect MIME type
-                mime = magic.from_buffer(content, mime=True)
+                mime = await asyncio.to_thread(magic.from_buffer, content, mime=True)
 
                 # libmagic does content-based detection and misidentifies markdown files
                 # containing code blocks (e.g. Python snippets) as text/x-script.python.
@@ -750,7 +751,8 @@ async def upload_documents(
 
                 # Upload to S3
                 logger.info(f"Uploading {file.filename} to S3...")
-                s3_result = s3_storage.upload_file(
+                s3_result = await asyncio.to_thread(
+                    s3_storage.upload_file,
                     file_content=content,
                     key=s3_key,
                     content_type=mime,

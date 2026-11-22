@@ -58,29 +58,40 @@ class ProvisioningError(Exception):
         self.status_code = status_code
 
 
-# Anything whose name suggests a credential is never copied from a template to a customer
+# Anything whose name suggests a credential is never copied from a template to a customer. Counts such as
+# max_tokens or budget_tokens are settings, not secrets, so names ending in "tokens" are kept.
 _SENSITIVE_NAME_PARTS = ("key", "token", "secret", "password", "passwd", "auth", "header", "credential", "cookie")
+_SECRET_IN_PATH = re.compile(r"(key|token|secret|sig|signature|password|auth)[=:;]", re.IGNORECASE)
+
+
+def _is_sensitive_name(name: Any) -> bool:
+    lowered = str(name).lower()
+    if lowered.endswith("tokens"):
+        return False
+    return any(part in lowered for part in _SENSITIVE_NAME_PARTS)
 
 
 def _without_credentials(value: Any) -> Any:
-    """A copy of ``value`` with credential-like keys removed at every level."""
+    """A copy of ``value`` with credential-like entries removed at every level."""
     if isinstance(value, dict):
-        return {
-            k: _without_credentials(v)
-            for k, v in value.items()
-            if not any(part in str(k).lower() for part in _SENSITIVE_NAME_PARTS)
-        }
+        # A header given as {"name": "Authorization", "value": "..."} is dropped whole
+        if any(k in value and _is_sensitive_name(value[k]) for k in ("name", "key", "header")):
+            return None
+        return {k: _without_credentials(v) for k, v in value.items() if not _is_sensitive_name(k)}
     if isinstance(value, list):
-        return [_without_credentials(v) for v in value]
+        return [item for item in (_without_credentials(v) for v in value) if item is not None]
     return value
 
 
 def _safe_api_base(url: str | None) -> str | None:
-    """Keep a custom model endpoint only when it carries no user name, password or query string (which may hold a key)."""
+    """
+    Keep a custom model endpoint only when it carries no credentials: no user name or password, no query string
+    or fragment, and nothing like "key=" or ";token=" in the path.
+    """
     if not url:
         return url
     parsed = urlsplit(url)
-    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+    if parsed.username or parsed.password or parsed.query or parsed.fragment or _SECRET_IN_PATH.search(parsed.path):
         return None
     return url
 

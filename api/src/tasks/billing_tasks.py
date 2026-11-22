@@ -470,8 +470,8 @@ def _find_missing_deductions(db) -> list:
                 JOIN subscription_plans sp ON sp.id = ts.plan_id
                 WHERE ts.tenant_id = a.tenant_id
                 AND ts.status IN ('ACTIVE', 'TRIAL')
-                AND jsonb_typeof(sp.quota_pools) = 'array'
-                AND jsonb_array_length(sp.quota_pools) > 0
+                AND CASE WHEN jsonb_typeof(sp.quota_pools) = 'array'
+                    THEN jsonb_array_length(sp.quota_pools) > 0 ELSE false END
             )
             LIMIT 100
         """)

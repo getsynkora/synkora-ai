@@ -134,8 +134,22 @@ _EVENT_TYPE = re.compile(r'^data: \{"type": "([a-z_]+)"')
 
 
 def _delivers_reply(event: Any) -> bool:
+    """
+    True once the run has produced something of value: part of the reply, a completed tool call (its side effects,
+    such as a sent email, have happened), a finished sub-agent (its output is in the event), or an approval request.
+    Progress events such as "started" do not count, so a run that did nothing is never charged.
+    """
     match = _EVENT_TYPE.match(event) if isinstance(event, str) else None
-    return bool(match) and match.group(1) in _REPLY_EVENT_TYPES
+    if not match:
+        return False
+    kind = match.group(1)
+    if kind in _REPLY_EVENT_TYPES:
+        return True
+    if kind == "tool_status":
+        return '"status": "completed"' in event
+    if kind == "workflow_event":
+        return '"event_type": "sub_agent_complete"' in event
+    return kind == "approval_required"
 
 
 @dataclass

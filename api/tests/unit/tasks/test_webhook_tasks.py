@@ -87,7 +87,7 @@ class TestDelivery:
         resolve.assert_called_once_with(endpoint.url)
         assert post.call_args.args[0] is DESTINATION
 
-    def test_a_failed_attempt_is_retried_without_counting_a_failure_yet(self, db, endpoint):
+    def test_every_failed_attempt_counts_and_is_retried_while_the_endpoint_is_on(self, db, endpoint):
         with (
             patch.object(tasks, "post_pinned", return_value=500),
             patch.object(tasks.deliver_webhook_event, "retry", side_effect=Retry()) as retry,
@@ -95,7 +95,29 @@ class TestDelivery:
             with pytest.raises(Retry):
                 _run()
         retry.assert_called_once()
-        assert endpoint.consecutive_failures == 0
+        assert endpoint.consecutive_failures == 1
+
+    def test_a_tarpit_endpoint_is_switched_off_after_a_few_attempts_not_after_many_events(self, db, endpoint):
+        """Reproduces a trickling receiver holding workers through every retry of every event and staying on."""
+        with (
+            patch.object(tasks, "post_pinned", side_effect=SoftTimeLimitExceeded()),
+            patch.object(tasks.deliver_webhook_event, "retry", side_effect=Retry()),
+        ):
+            for _ in range(tasks.MAX_CONSECUTIVE_FAILURES - 1):
+                with pytest.raises(Retry):
+                    _run()
+            assert endpoint.is_active is True
+            _run()  # the last failure switches it off, and no further retry is scheduled
+        assert endpoint.is_active is False
+
+    def test_a_slow_dns_answer_hitting_the_time_limit_counts_as_a_failure(self, db, endpoint):
+        with (
+            patch.object(tasks, "resolve_destination", side_effect=SoftTimeLimitExceeded()),
+            patch.object(tasks.deliver_webhook_event, "retry", side_effect=Retry()),
+        ):
+            with pytest.raises(Retry):
+                _run()
+        assert endpoint.consecutive_failures == 1
 
     def test_a_network_error_is_retried_too(self, db):
         with (
@@ -105,7 +127,7 @@ class TestDelivery:
             with pytest.raises(Retry):
                 _run()
 
-    def test_giving_up_counts_one_failure(self, db, endpoint):
+    def test_giving_up_does_not_count_the_last_attempt_twice(self, db, endpoint):
         with (
             patch.object(tasks, "post_pinned", return_value=500),
             patch.object(tasks.deliver_webhook_event, "retry", side_effect=MaxRetriesExceededError()),

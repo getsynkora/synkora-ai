@@ -51,46 +51,46 @@ def deliver_webhook_event(self, endpoint_id: str, delivery_id: str, event_type: 
         if endpoint is None or not endpoint.is_active:
             return
 
-        # Check and resolve the destination now, then connect to exactly that address: DNS may have changed since
-        # the endpoint was registered, and a second lookup at connect time could return an internal address.
-        destination, error = resolve_destination(endpoint.url)
-        if error:
-            logger.warning("Webhook %s not sent to %s: %s", delivery_id, endpoint.id, error)
-            _record_result(db, endpoint, ok=False)
-            return
-
-        body = json.dumps(payload, separators=(",", ":"), default=str)
-        timestamp = int(time.time())
-        signature = sign_payload(decrypt_value(endpoint.secret), timestamp, body)
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "Synkora-Webhooks/1.0",
-            "X-Synkora-Event": event_type,
-            "X-Synkora-Delivery": delivery_id,
-            "X-Synkora-Signature": f"t={timestamp},v1={signature}",
-        }
         started = time.monotonic()
         try:
+            # Check and resolve the destination now, then connect to exactly that address: DNS may have changed since
+            # the endpoint was registered, and a second lookup at connect time could return an internal address.
+            destination, error = resolve_destination(endpoint.url)
+            if error:
+                logger.warning("Webhook %s not sent to %s: %s", delivery_id, endpoint.id, error)
+                _record_result(db, endpoint, ok=False)
+                return
+
+            body = json.dumps(payload, separators=(",", ":"), default=str)
+            timestamp = int(time.time())
+            signature = sign_payload(decrypt_value(endpoint.secret), timestamp, body)
+            headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "Synkora-Webhooks/1.0",
+                "X-Synkora-Event": event_type,
+                "X-Synkora-Delivery": delivery_id,
+                "X-Synkora-Signature": f"t={timestamp},v1={signature}",
+            }
             status_code = post_pinned(
                 destination, body, headers, timeout=(CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS)
             )
             ok = 200 <= status_code < 300 and time.monotonic() - started <= SLOW_DELIVERY_SECONDS
         except (requests.RequestException, SoftTimeLimitExceeded) as err:
             # Only the error type is logged: the message can contain the endpoint's path and query, which often
-            # carry a secret token.
+            # carry a secret token. A slow DNS answer hitting the time limit lands here too.
             logger.info("Webhook %s to %s failed: %s", delivery_id, endpoint.id, type(err).__name__)
             ok = False
 
-        if ok:
-            _record_result(db, endpoint, ok=True)
+        # Every attempt counts, so an endpoint that keeps failing or answering slowly is switched off after a few
+        # attempts instead of holding workers through every retry of every event.
+        _record_result(db, endpoint, ok)
+        if ok or not endpoint.is_active:
             return
         try:
             raise self.retry(countdown=min(30 * 2**self.request.retries, 3600))
         except MaxRetriesExceededError:
-            # Counted once per event that never got through, not once per attempt
             logger.warning(
                 "Webhook %s to %s given up after %s attempts", delivery_id, endpoint.id, self.max_retries + 1
             )
-            _record_result(db, endpoint, ok=False)
     finally:
         db.close()

@@ -269,3 +269,18 @@ class TestCheckPermissionDependency:
                 # Verify action is passed correctly
                 call_kwargs = mock_instance.check_permission.call_args.kwargs
                 assert call_kwargs["action"] == action
+
+
+def test_handoff_permissions_must_be_listed_exactly():
+    """'*' used to grant handoff:read and handoff:write; scoped permissions now need to be listed."""
+    import uuid as _uuid
+
+    from fastapi import HTTPException
+
+    from src.middleware.agent_api_auth import HandoffAccess
+
+    for permission in ("handoff:read", "handoff:write"):
+        with pytest.raises(HTTPException):
+            HandoffAccess(_uuid.uuid4(), _uuid.uuid4(), frozenset({"*"})).require(permission)
+        HandoffAccess(_uuid.uuid4(), _uuid.uuid4(), frozenset({permission})).require(permission)  # allowed
+    HandoffAccess(_uuid.uuid4()).require("handoff:write")  # a logged-in account is unaffected

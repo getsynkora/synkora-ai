@@ -391,6 +391,20 @@ class TestNoCredentialsCrossTenants:
         assert cleaned == {"temperature": 0.2, "reasoning_effort": "high", "nested": {"keep": 1, "list": [{"ok": 2}]}}
         assert params["extra_headers"]  # the template itself is untouched
 
+    def test_token_counts_are_settings_not_secrets(self):
+        params = {"max_tokens": 4096, "max_output_tokens": 800, "thinking": {"budget_tokens": 2000}, "auth_token": "x"}
+        assert svc._without_credentials(params) == {
+            "max_tokens": 4096,
+            "max_output_tokens": 800,
+            "thinking": {"budget_tokens": 2000},
+        }
+
+    def test_headers_given_as_name_value_pairs_are_removed(self):
+        params = {"headers_list": [{"name": "Authorization", "value": "Bearer m"}, {"name": "X-Trace", "value": "1"}]}
+        assert svc._without_credentials({"extra": params["headers_list"]}) == {
+            "extra": [{"name": "X-Trace", "value": "1"}]
+        }
+
     @pytest.mark.parametrize(
         ("url", "kept"),
         [
@@ -398,6 +412,9 @@ class TestNoCredentialsCrossTenants:
             ("https://user:pass@gateway.example.com/v1", False),
             ("https://gateway.example.com/v1?api_key=secret", False),
             ("https://gateway.example.com/v1#token", False),
+            ("https://gateway.example.com/key=SECRET/v1", False),
+            ("https://gateway.example.com/v1;token=abc", False),
+            ("https://gateway.example.com/openai/deployments/gpt4", True),
             (None, True),
         ],
     )
