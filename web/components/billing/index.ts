@@ -1,5 +1,6 @@
 export { default as SubscriptionPlanCard } from './SubscriptionPlanCard'
 export { default as CreditBalanceCard } from './CreditBalanceCard'
+export { default as QuotaUsageCard } from './QuotaUsageCard'
 export { default as CreditTopupCard } from './CreditTopupCard'
 export { default as CreditTransactionHistory } from './CreditTransactionHistory'
 export { default as UsageAnalyticsChart } from './UsageAnalyticsChart'

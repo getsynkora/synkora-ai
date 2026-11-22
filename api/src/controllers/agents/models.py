@@ -61,6 +61,12 @@ class UpdateAgentRequest(StrictModel):
         pattern=r"^(hidden|public|members_only)$",
     )
     category: str | None = Field(None, description="Agent category for marketplace")
+    quota_pool: str | None = Field(
+        None,
+        max_length=64,
+        pattern=r"^[a-z0-9][a-z0-9_-]*$|^$",
+        description="Plan quota pool this agent draws messages from (empty string clears it)",
+    )
     tags: list[str] | None = Field(None, description="Tags for agent discovery")
     voice_enabled: bool | None = Field(None, description="Whether voice chat is enabled")
     voice_config: dict[str, Any] | None = Field(

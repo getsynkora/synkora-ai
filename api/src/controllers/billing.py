@@ -26,6 +26,7 @@ from src.services.billing import (
     SubscriptionService,
     UsageTrackingService,
 )
+from src.services.billing.quota_service import QuotaService
 from src.services.integrations.integration_config_service import IntegrationConfigService
 from src.utils.config_helper import get_app_base_url
 
@@ -245,6 +246,17 @@ class SubscriptionPlanResponse(BaseModel):
     max_team_members: int | None
     features: dict
     is_active: bool
+    quota_pools: list[dict] | None = None
+
+
+class QuotaPoolUsageResponse(BaseModel):
+    key: str
+    label: str
+    limit: int
+    used: int
+    remaining: int
+    period_start: datetime
+    period_end: datetime
 
 
 class UsageSummaryResponse(BaseModel):
@@ -316,6 +328,24 @@ async def get_credit_balance(
         pass
 
     return result
+
+
+@router.get("/quota", response_model=list[QuotaPoolUsageResponse])
+async def get_quota_usage(tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)):
+    """Per-pool message usage for the current billing period (empty if the plan uses shared credits)."""
+    statuses = await QuotaService(db).list_pool_statuses(tenant_id)
+    return [
+        QuotaPoolUsageResponse(
+            key=s.key,
+            label=s.label,
+            limit=s.limit,
+            used=s.used,
+            remaining=s.remaining,
+            period_start=s.period_start,
+            period_end=s.period_end,
+        )
+        for s in statuses
+    ]
 
 
 @router.get("/credits/transactions", response_model=list[CreditTransactionResponse])
@@ -551,6 +581,7 @@ async def get_subscription_plans(db: AsyncSession = Depends(get_async_db)):
             max_team_members=plan.max_team_members,
             features=plan.features or {},
             is_active=plan.is_active,
+            quota_pools=plan.quota_pools,
         )
         for plan in plans
     ]

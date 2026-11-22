@@ -46,6 +46,12 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
 
     description = Column(Text, nullable=True, comment="Agent description")
 
+    quota_pool = Column(
+        String(64),
+        nullable=True,
+        comment="Plan quota pool this agent's messages draw from (null = 'default' pool)",
+    )
+
     system_prompt = Column(Text, nullable=True, comment="System prompt for the agent")
 
     llm_config = Column(JSON, nullable=False, comment="LLM configuration (provider, model, api_key, etc.)")

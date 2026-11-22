@@ -97,6 +97,23 @@ def deduct_credits_async(self, tenant_id: str, user_id: str | None, agent_id: st
         async_session_factory = create_celery_async_session()
         async with async_session_factory() as db:
             try:
+                # Plans with quota pools meter messages per pool instead of spending credits
+                message_id = (metadata or {}).get("message_id")
+                if message_id:
+                    from src.models.agent import Agent
+                    from src.services.billing.quota_service import ConsumeResult, QuotaService
+
+                    agent_row = await db.get(Agent, agent_uuid)
+                    # The unit was normally reserved before the reply; the same key makes this a no-op.
+                    quota_result = await QuotaService(db).consume(
+                        tenant_id=tenant_uuid,
+                        pool_key=agent_row.quota_pool if agent_row else None,
+                        idempotency_key=metadata.get("quota_key") or f"msg_{message_id}",
+                    )
+                    if quota_result != ConsumeResult.NOT_METERED:
+                        logger.info(f"Quota unit {quota_result.value}: tenant={tenant_id}, message={message_id}")
+                        return None
+
                 # Initialize credit service
                 credit_service = CreditService(db)
 

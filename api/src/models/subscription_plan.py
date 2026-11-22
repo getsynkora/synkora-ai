@@ -160,6 +160,15 @@ class SubscriptionPlan(BaseModel):
         comment="JSON object of plan features and limits",
     )
 
+    quota_pools = Column(
+        JSONB,
+        nullable=True,
+        comment=(
+            "Per-pool monthly message quotas: [{'key': slug, 'label': display name, 'limit': int}]. "
+            "Null = plan uses the shared credit balance instead."
+        ),
+    )
+
     is_active = Column(
         Boolean,
         nullable=False,

@@ -968,6 +968,7 @@ async def get_agent(
                 "portal_visibility": db_agent.portal_visibility or "hidden",
                 "allow_subscriptions": db_agent.allow_subscriptions or False,
                 "category": db_agent.category,
+                "quota_pool": db_agent.quota_pool,
                 "tags": db_agent.tags or [],
                 "voice_enabled": db_agent.voice_enabled or False,
                 "voice_config": db_agent.voice_config or {} if is_own_agent else {},
@@ -1194,6 +1195,8 @@ async def update_agent(
             db_agent.portal_visibility = request.portal_visibility
         if request.category is not None:
             db_agent.category = request.category
+        if request.quota_pool is not None:
+            db_agent.quota_pool = request.quota_pool or None
         if request.tags is not None:
             db_agent.tags = request.tags
         if request.voice_enabled is not None:

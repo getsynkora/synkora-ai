@@ -3,6 +3,7 @@ import type {
   SubscriptionPlan,
   TenantSubscription,
   CreditBalance,
+  QuotaPoolUsage,
   CreditTransaction,
   CreditTopup,
   AgentPricing,
@@ -66,6 +67,11 @@ export const verifyCheckoutSession = async (sessionId: string): Promise<{ status
 // Credit Balance
 export const getCreditBalance = async (): Promise<CreditBalance> => {
   return await apiClient.request('GET', '/api/v1/billing/credits/balance');
+};
+
+// Plan message quotas (empty when the plan uses shared credits)
+export const getQuotaUsage = async (): Promise<QuotaPoolUsage[]> => {
+  return await apiClient.request('GET', '/api/v1/billing/quota');
 };
 
 // Credit Transactions

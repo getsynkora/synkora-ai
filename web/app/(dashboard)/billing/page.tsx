@@ -3,10 +3,12 @@
 import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSubscriptionPlans, useSubscription, useCredits, useUsageAnalytics } from '@/hooks/useBilling'
-import { verifyCheckoutSession, getPaymentProviderConfig } from '@/lib/api/billing'
+import { verifyCheckoutSession, getPaymentProviderConfig, getQuotaUsage } from '@/lib/api/billing'
+import type { QuotaPoolUsage } from '@/types/billing'
 import {
   SubscriptionPlanCard,
   CreditBalanceCard,
+  QuotaUsageCard,
   CreditTopupCard,
   CreditTransactionHistory,
   UsageAnalyticsChart,
@@ -21,6 +23,13 @@ function BillingContent() {
   const { subscription, create, upgrade, refetch: refetchSubscription } = useSubscription()
   const { balance, topups, transactions, loading: creditsLoading, topup, refetchBalance } = useCredits()
   const { actionBreakdown, loading: analyticsLoading } = useUsageAnalytics()
+  const [quotaPools, setQuotaPools] = useState<QuotaPoolUsage[]>([])
+
+  useEffect(() => {
+    getQuotaUsage()
+      .then((pools) => setQuotaPools(Array.isArray(pools) ? pools : []))
+      .catch(() => setQuotaPools([]))
+  }, [])
 
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null)
   const [processingTopupId, setProcessingTopupId] = useState<string | null>(null)
@@ -315,12 +324,16 @@ function BillingContent() {
           {/* Credits Tab */}
           {activeTab === 'credits' && (
             <div className="space-y-6">
+              {/* Plans with message pools show per-pool usage instead of a credit balance */}
+              {quotaPools.length > 0 && <QuotaUsageCard pools={quotaPools} />}
+
               {/* Credit Balance */}
-              {balance && (
+              {quotaPools.length === 0 && balance && (
                 <CreditBalanceCard balance={balance} />
               )}
 
               {/* Credit Top-ups */}
+              {quotaPools.length === 0 && (
               <div>
                 <h2 className="mb-4 text-base font-semibold text-ink">
                   Purchase Credits
@@ -346,6 +359,7 @@ function BillingContent() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Transaction History */}
               <div>

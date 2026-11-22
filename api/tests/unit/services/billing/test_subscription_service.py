@@ -133,15 +133,57 @@ class TestSubscriptionService:
         with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
             # Mock credit service
             service.credit_service = AsyncMock()
-            service.credit_service.reset_monthly_usage = AsyncMock()
+            service.credit_service.apply_monthly_rollover = AsyncMock()
             service.credit_service.add_credits = AsyncMock()
+            mock_plan.credits_rollover = True
+            mock_plan.features = {"max_rollover_credits": 30000}
 
             renewed_sub = await service.renew_subscription(mock_subscription.id)
 
             assert renewed_sub.current_period_end > datetime.now(UTC) + timedelta(days=29)
-            service.credit_service.reset_monthly_usage.assert_called_once_with(mock_subscription.tenant_id)
+            # Old balance is reduced to what may roll over, then exactly one month's grant is added
+            service.credit_service.apply_monthly_rollover.assert_called_once_with(
+                tenant_id=mock_subscription.tenant_id,
+                new_credits=0,
+                max_rollover=30000,
+                credits_rollover=True,
+            )
             service.credit_service.add_credits.assert_called_once()
             mock_db.commit.assert_called_once()
+
+    async def test_renew_subscription_without_rollover_expires_unused_credits(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_rollover = False
+            mock_plan.features = {"max_rollover_credits": 30000}
+
+            await service.renew_subscription(mock_subscription.id)
+
+            kwargs = service.credit_service.apply_monthly_rollover.call_args.kwargs
+            assert kwargs["credits_rollover"] is False
+
+    async def test_renew_subscription_skips_credit_grant_for_quota_pool_plans(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_monthly = 0
+            mock_plan.credits_rollover = False
+            mock_plan.features = None
+
+            await service.renew_subscription(mock_subscription.id)
+
+            service.credit_service.add_credits.assert_not_called()
 
     async def test_renew_subscription_not_found(self, service, mock_db):
         mock_result = MagicMock()

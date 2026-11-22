@@ -687,7 +687,7 @@ class StripeService:
 
         if tenant_subscription:
             # Renew subscription and allocate credits
-            await self.subscription_service.renew_subscription(tenant_subscription.tenant_id)
+            await self.subscription_service.renew_subscription(tenant_subscription.id)
 
         return True
 

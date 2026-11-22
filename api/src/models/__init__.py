@@ -98,6 +98,7 @@ from .platform_settings import PlatformSettings
 from .project import Project, ProjectStatus
 from .project_agent import ProjectAgent
 from .proxy_config import ProxyConfig, ProxyProvider
+from .quota_usage import QuotaUsage, QuotaUsageEvent
 from .recall_webhook_receipt import RecallWebhookReceipt
 from .review_analytics import PeriodType, ReviewAnalytics, SentimentTrend
 from .role import Role
@@ -293,6 +294,8 @@ __all__ = [
     "TenantSubscription",
     "SubscriptionStatus",
     "CreditBalance",
+    "QuotaUsage",
+    "QuotaUsageEvent",
     "CreditTransaction",
     "TransactionType",
     "AgentPricing",

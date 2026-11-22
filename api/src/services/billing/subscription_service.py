@@ -119,17 +119,26 @@ class SubscriptionService:
         subscription.current_period_start = now
         subscription.current_period_end = now + timedelta(days=30)
 
-        # Reset monthly usage
-        await self.credit_service.reset_monthly_usage(subscription.tenant_id)
-
-        # Add new monthly credits
-        await self.credit_service.add_credits(
+        # Start the new period from zero used. Unused credits, top-ups included, expire unless
+        # the plan allows rollover, and then only up to max_rollover_credits. Previously the old
+        # total stayed in place and every renewal piled the new grant on top of it.
+        max_rollover = int((plan.features or {}).get("max_rollover_credits", 0) or 0)
+        await self.credit_service.apply_monthly_rollover(
             tenant_id=subscription.tenant_id,
-            amount=plan.credits_monthly,
-            transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
-            description=f"Monthly credits renewal for {plan.name} plan",
-            reference_id=subscription.id,
+            new_credits=0,
+            max_rollover=max_rollover,
+            credits_rollover=bool(plan.credits_rollover),
         )
+
+        # Add the new monthly credits (quota-pool plans grant none; their pools reset per period)
+        if plan.credits_monthly:
+            await self.credit_service.add_credits(
+                tenant_id=subscription.tenant_id,
+                amount=plan.credits_monthly,
+                transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
+                description=f"Monthly credits renewal for {plan.name} plan",
+                reference_id=subscription.id,
+            )
 
         await self.db.commit()
         await self.db.refresh(subscription)

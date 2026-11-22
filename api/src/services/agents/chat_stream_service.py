@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from dataclasses import dataclass
@@ -41,6 +42,7 @@ from src.services.agents.context_window_guard import get_context_guard
 from src.services.agents.execution_budget import chat_execution_deadline
 from src.services.agents.response_language import language_instruction
 from src.services.agents.token_counter import TokenCounter
+from src.services.billing.quota_service import QuotaService, ReserveResult
 from src.services.cache.conversation_cache_service import get_conversation_cache
 from src.services.security.output_sanitizer import output_sanitizer as default_output_sanitizer
 from src.services.security.secret_scanner import scan as _scan_secrets
@@ -196,6 +198,10 @@ class ChatStreamService:
         _execution_id = None
         run_lease = None
         completion_sent = False
+        # Plan quota unit taken before the reply; released in ``finally`` unless the reply was saved
+        quota_reserved_key: str | None = None
+        quota_reserved_tenant = None
+        quota_settled = False
 
         # Initialize shared_state and inject chat session metadata
         if shared_state is None:
@@ -333,6 +339,42 @@ class ChatStreamService:
             db_agent = load_result.db_agent
             agent = load_result.agent
             is_workflow_agent = load_result.is_workflow
+
+            # QUOTA: take one unit from the agent's plan pool before doing any work, so the
+            # limit holds even when many messages arrive at once. Plans without pools skip this.
+            try:
+                _quota_tenant = tenant_id or db_agent.tenant_id
+                _quota_key = f"msg_{user_message_saved.id}" if user_message_saved else f"run_{uuid.uuid4().hex}"
+                async with get_async_session_factory()() as _quota_db:
+                    _reserve = await QuotaService(_quota_db).reserve(
+                        tenant_id=_quota_tenant,
+                        pool_key=db_agent.quota_pool,
+                        idempotency_key=_quota_key,
+                    )
+                    if _reserve == ReserveResult.EXHAUSTED:
+                        from src.services.billing.chat_billing_service import ChatBillingService
+
+                        _quota_check = await ChatBillingService(_quota_db).validate_quota(
+                            _quota_tenant, db_agent.quota_pool
+                        )
+                        _quota_msg = (
+                            _quota_check.error.message
+                            if _quota_check and _quota_check.error
+                            else "You've used all the messages included in your plan this month."
+                        )
+                        if user_message_saved:
+                            await self.chat_service.mark_message_failed(
+                                message=user_message_saved, error="quota_exceeded", db=db
+                            )
+                        yield await generate_error_event(_quota_msg)
+                        return
+                if _reserve == ReserveResult.RESERVED:
+                    quota_reserved_key = _quota_key
+                    quota_reserved_tenant = _quota_tenant
+            except Exception as _quota_err:
+                # Fail open: a quota-bookkeeping error must not block the chat. The deduction
+                # task still counts the unit after the reply under the same key.
+                logger.warning(f"Quota reservation failed, continuing without it: {_quota_err}")
 
             # Expose JEV client in shared_state so tool discovery can use semantic search
             if load_result.jev_client is not None:
@@ -879,6 +921,7 @@ class ChatStreamService:
                     finally:
                         if managed_db_session and stats_db is not None:
                             await asyncio.shield(stats_db.close())
+                    quota_settled = True
                     self.chat_service.queue_credit_deduction(
                         tenant_id=tenant_id or db_agent.tenant_id,
                         agent_id=db_agent.id,
@@ -887,6 +930,7 @@ class ChatStreamService:
                         agent_name=agent_name,
                         model=agent.llm_client.config.model_name,
                         content=assistant_content,
+                        quota_key=quota_reserved_key,
                     )
 
                     # Skip output delivery when called from the scheduler — scheduled_tasks.py
@@ -956,6 +1000,14 @@ class ChatStreamService:
                 if managed_db_session and failure_db is not None:
                     await asyncio.shield(failure_db.close())
         finally:
+            if quota_reserved_key and not quota_settled:
+                try:
+                    async with get_async_session_factory()() as _release_db:
+                        await asyncio.shield(
+                            QuotaService(_release_db).release(quota_reserved_tenant, quota_reserved_key)
+                        )
+                except Exception:
+                    logger.warning("Could not release plan quota unit for a run that did not complete")
             if run_lease is not None:
                 try:
                     await asyncio.shield(run_lease.release())

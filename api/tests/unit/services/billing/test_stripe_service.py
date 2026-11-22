@@ -275,7 +275,8 @@ class TestStripeService:
         inv_data = {"subscription": "sub_1"}
         result = await service._handle_invoice_payment_succeeded(inv_data)
         assert result is True
-        service.subscription_service.renew_subscription.assert_called()
+        # Must be the subscription's own id, not the tenant id
+        service.subscription_service.renew_subscription.assert_called_once_with(mock_sub.id)
 
     async def test_handle_checkout_session_completed_topup(self, service):
         mock_topup = MagicMock(spec=CreditTopup)
