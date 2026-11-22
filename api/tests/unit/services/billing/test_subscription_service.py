@@ -286,6 +286,38 @@ class TestSubscriptionService:
             service.credit_service.add_credits.assert_called_once()  # Prorated credits
             mock_db.commit.assert_called_once()
 
+    async def test_a_downgrade_takes_back_the_prorated_credits(self, service, mock_db, mock_subscription, mock_plan):
+        """Reproduces switching plans back and forth minting credits: upgrades added, downgrades never removed."""
+        low = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=1000)
+        low.name = "Low"
+        high = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=30000)
+        mock_subscription.current_period_end = datetime.now(UTC) + timedelta(days=29, hours=12)
+        service.credit_service = AsyncMock()
+        service.credit_service.get_balance = AsyncMock(return_value=MagicMock(available_credits=50_000))
+        with (
+            patch.object(service, "get_tenant_subscription", AsyncMock(return_value=mock_subscription)),
+            patch.object(service, "get_plan", AsyncMock(side_effect=[low, high])),
+        ):
+            await service.upgrade_subscription(mock_subscription.tenant_id, low.id)
+
+        amount = service.credit_service.add_credits.await_args.kwargs["amount"]
+        expected_take_back = int((30000 / 30 - 1000 / 30) * 29)  # 29 whole days left in the period
+        assert amount == -expected_take_back
+
+    async def test_a_downgrade_never_takes_more_than_is_unused(self, service, mock_db, mock_subscription):
+        low = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=1000)
+        low.name = "Low"
+        high = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=30000)
+        mock_subscription.current_period_end = datetime.now(UTC) + timedelta(days=29, hours=12)
+        service.credit_service = AsyncMock()
+        service.credit_service.get_balance = AsyncMock(return_value=MagicMock(available_credits=500))
+        with (
+            patch.object(service, "get_tenant_subscription", AsyncMock(return_value=mock_subscription)),
+            patch.object(service, "get_plan", AsyncMock(side_effect=[low, high])),
+        ):
+            await service.upgrade_subscription(mock_subscription.tenant_id, low.id)
+        assert service.credit_service.add_credits.await_args.kwargs["amount"] == -500
+
     async def test_upgrade_subscription_no_active(self, service):
         with patch.object(service, "get_tenant_subscription", AsyncMock(return_value=None)):
             with pytest.raises(ValueError, match="No active subscription"):

@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.tenant_subscription import SubscriptionStatus
 from src.services.billing.chat_billing_service import BillingErrorCode, ChatBillingService
 from src.services.billing.quota_service import (
     DEFAULT_POOL_KEY,
@@ -255,3 +256,30 @@ class TestListPoolStatuses:
         with patch.object(service, "_active_plan", AsyncMock(return_value=(sub, MagicMock(quota_pools=None)))):
             assert await service.list_pool_statuses(uuid4()) == []
         db.execute.assert_not_called()
+
+
+class TestInactiveSubscription:
+    """Bots, widgets and the scheduler run no pre-check, so the reservation itself refuses inactive accounts."""
+
+    @pytest.mark.parametrize(
+        "status", [SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED, SubscriptionStatus.EXPIRED]
+    )
+    async def test_a_suspended_cancelled_or_expired_subscription_is_refused(self, db, status):
+        service = QuotaService(db)
+        db.scalar.return_value = status
+        with patch.object(service, "_active_plan", AsyncMock(return_value=None)):
+            assert await service.reserve(uuid4(), "support", "msg_1") == ReserveResult.INACTIVE
+        db.execute.assert_not_called()
+
+    async def test_a_tenant_that_never_subscribed_is_not_metered(self, db):
+        service = QuotaService(db)
+        db.scalar.return_value = None
+        with patch.object(service, "_active_plan", AsyncMock(return_value=None)):
+            assert await service.reserve(uuid4(), "support", "msg_1") == ReserveResult.NOT_METERED
+
+    async def test_the_most_recent_subscription_decides(self, db):
+        service = QuotaService(db)
+        db.scalar.return_value = SubscriptionStatus.CANCELLED
+        await service._has_inactive_subscription(uuid4())
+        sql = str(db.scalar.call_args[0][0])
+        assert "ORDER BY tenant_subscriptions.created_at DESC" in sql and "LIMIT" in sql

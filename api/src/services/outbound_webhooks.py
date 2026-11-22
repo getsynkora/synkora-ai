@@ -10,6 +10,9 @@ Every delivery is a JSON POST signed with the endpoint's secret::
 
     X-Synkora-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<body>">
 
+Receivers should recompute the HMAC over the raw body, compare it in constant time, and reject a ``t`` more than
+5 minutes old so a captured delivery cannot be replayed. ``X-Synkora-Delivery`` is unique per event; ignore repeats.
+
 Events for a tenant also go to the endpoints of the tenant that manages it, with the customer's
 ``tenant_id`` and ``tenant_external_ref`` in the payload, so one endpoint hears about every customer.
 """
@@ -65,6 +68,9 @@ class Destination:
 
 
 ALLOWED_PORTS = frozenset({443})
+DESTINATION_REFUSED = "URL must resolve to a public address"
+
+_IPV6_GLOBAL_UNICAST = ipaddress.ip_network("2000::/3")
 
 # Address forms that embed another address or are not real destinations (NAT64, 6to4, Teredo)
 _TRANSITION_NETWORKS = tuple(
@@ -81,6 +87,10 @@ def is_public_address(value: str) -> bool:
     if isinstance(address, ipaddress.IPv6Address):
         if address.ipv4_mapped is not None:
             return is_public_address(str(address.ipv4_mapped))
+        # Only global unicast IPv6 (2000::/3). This refuses IPv4-compatible (::/96) and SIIT (::ffff:0:0/96)
+        # forms, which a translator could route to an internal IPv4 address.
+        if address not in _IPV6_GLOBAL_UNICAST:
+            return False
         if any(address in network for network in _TRANSITION_NETWORKS):
             return False
     return address.is_global and not address.is_multicast
@@ -114,13 +124,12 @@ def resolve_destination(url: str) -> tuple[Destination | None, str | None]:
     try:
         infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except (socket.gaierror, UnicodeError):
-        return None, "Host name could not be resolved"
+        return None, DESTINATION_REFUSED
     addresses = [info[4][0] for info in infos]
-    if not addresses:
-        return None, "Host name could not be resolved"
-    blocked = [a for a in addresses if not is_public_address(a)]
-    if blocked:
-        return None, "URL points to a private or internal address"
+    if not addresses or any(not is_public_address(a) for a in addresses):
+        # Same answer whether the name resolves to an internal address or not at all, so the check cannot be
+        # used to discover internal host names.
+        return None, DESTINATION_REFUSED
     return Destination(host=host, port=port, ip=addresses[0], target=parsed.request_uri or "/"), None
 
 
@@ -148,7 +157,11 @@ class _PinnedAdapter(HTTPAdapter):
 
 
 def post_pinned(
-    destination: Destination, body: str, headers: dict[str, str], timeout: float, verify: bool | str = True
+    destination: Destination,
+    body: str,
+    headers: dict[str, str],
+    timeout: float | tuple[float, float],
+    verify: bool | str = True,
 ) -> int:
     """
     POST ``body`` to the destination's already-checked IP and return the HTTP status.
@@ -158,7 +171,8 @@ def post_pinned(
     """
     ip = f"[{destination.ip}]" if ":" in destination.ip else destination.ip
     url = f"https://{ip}:{destination.port}{destination.target}"
-    host_header = destination.host if destination.port == 443 else f"{destination.host}:{destination.port}"
+    host = f"[{destination.host}]" if ":" in destination.host else destination.host
+    host_header = host if destination.port == 443 else f"{host}:{destination.port}"
     session = requests.Session()
     session.trust_env = False
     session.mount("https://", _PinnedAdapter(destination.host))
@@ -208,7 +222,10 @@ async def emit_event(db: AsyncSession, tenant_id: uuid.UUID, event_type: str, da
         tenant = await db.get(Tenant, tenant_id)
         owner_ids = [tenant_id]
         if tenant is not None and tenant.managed_by_tenant_id:
-            owner_ids.append(tenant.managed_by_tenant_id)
+            # Only a manager that is still allowed to manage tenants hears about its customers
+            manager = await db.get(Tenant, tenant.managed_by_tenant_id)
+            if manager is not None and manager.can_manage_tenants:
+                owner_ids.append(manager.id)
 
         result = await db.execute(
             select(WebhookEndpoint).where(

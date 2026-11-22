@@ -1,5 +1,6 @@
 """Chat attachment service for handling file uploads in chat."""
 
+import asyncio
 import io
 import logging
 from datetime import UTC, datetime
@@ -9,6 +10,7 @@ from uuid import UUID, uuid4
 import docx
 import pypdf
 
+from src.services.security.document_limits import check_office_archive, pdf_text_pypdf
 from src.services.storage.s3_storage import S3StorageService
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,12 @@ ALL_SUPPORTED_TYPES = SUPPORTED_IMAGE_TYPES | SUPPORTED_DOCUMENT_TYPES | SUPPORT
 
 # File size limits
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+# What a chat attachment may unpack to and produce. A small file can unpack into something huge, and the text goes
+# into the prompt, so these are deliberately tighter than the knowledge-base limits.
+MAX_ATTACHMENT_UNPACKED_BYTES = 15 * 1024 * 1024
+MAX_ATTACHMENT_PDF_PAGES = 300
+MAX_ATTACHMENT_TEXT_CHARS = 200_000
+DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 MAX_FILES_PER_MESSAGE = 5
 
 
@@ -119,6 +127,13 @@ class AttachmentService:
         if file_size > MAX_FILE_SIZE:
             raise ValueError(f"File size ({file_size} bytes) exceeds maximum allowed size ({MAX_FILE_SIZE} bytes)")
 
+        # An Office document is a zip: refuse one that would unpack to too much data before anything parses it
+        if content_type == DOCX_TYPE:
+            raw = file_content if isinstance(file_content, bytes) else file_content.read()
+            if not isinstance(file_content, bytes):
+                file_content.seek(0)
+            check_office_archive(raw, MAX_ATTACHMENT_UNPACKED_BYTES)
+
         # Generate unique file ID
         file_id = str(uuid4())
 
@@ -132,7 +147,9 @@ class AttachmentService:
 
         # Upload to S3
         logger.info(f"Uploading chat attachment: {filename} ({content_type})")
-        result = self.s3_storage.upload_file(
+        # Storage and parsing are blocking work: keep them off the event loop
+        result = await asyncio.to_thread(
+            self.s3_storage.upload_file,
             file_content=file_content,
             key=s3_key,
             content_type=content_type,
@@ -200,32 +217,25 @@ class AttachmentService:
             str: Extracted text or None
         """
         try:
-            # For plain text files, just decode
-            if content_type == "text/plain":
-                return file_content.decode("utf-8")
-
-            # For markdown files
-            if content_type == "text/markdown":
-                return file_content.decode("utf-8")
-
-            # For CSV files
-            if content_type == "text/csv":
-                return file_content.decode("utf-8")
-
-            # For PDF files
-            if content_type == "application/pdf":
-                return self._extract_text_from_pdf(file_content)
-
-            # For DOCX files
-            if content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                return self._extract_text_from_docx(file_content)
-
-            logger.info(f"Text extraction for {content_type} not supported")
-            return None
+            text = await asyncio.to_thread(self._extract_text_sync, file_content, content_type)
+            if text is None:
+                logger.info(f"Text extraction for {content_type} not supported")
+            return text
 
         except Exception as e:
             logger.error(f"Error extracting text from {filename}: {e}")
             return None
+
+    def _extract_text_sync(self, file_content: bytes, content_type: str) -> str | None:
+        """Bounded text extraction; runs in a worker thread."""
+        if content_type in ("text/plain", "text/markdown", "text/csv"):
+            return file_content.decode("utf-8")[:MAX_ATTACHMENT_TEXT_CHARS]
+        if content_type == "application/pdf":
+            return pdf_text_pypdf(file_content, MAX_ATTACHMENT_PDF_PAGES, MAX_ATTACHMENT_TEXT_CHARS)
+        if content_type == DOCX_TYPE:
+            check_office_archive(file_content, MAX_ATTACHMENT_UNPACKED_BYTES)
+            return self._extract_text_from_docx(file_content)[:MAX_ATTACHMENT_TEXT_CHARS]
+        return None
 
     def _extract_text_from_pdf(self, file_content: bytes) -> str:
         """Extract text from PDF file."""

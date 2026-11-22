@@ -9,7 +9,7 @@ Typical flow for a new customer:
     1. POST /tenants                      create the customer's tenant on a plan
     2. POST /tenants/{id}/agents          create its agents from your template agents
     3. PUT  /tenants/{id}/agents/{agent}/llm-key   give an agent its LLM key (if not sent in step 2)
-    4. POST /tenants/{id}/api-keys        keys your frontend or backend uses to chat and show usage
+    4. POST /tenants/{id}/api-keys        keys for your backend (any permission) or browsers (chat only)
     5. PUT  /tenants/{id}/subscription    report plan changes and renewals from your billing system
 """
 
@@ -34,8 +34,8 @@ from src.core.database import get_async_db
 from src.middleware.agent_api_auth import AgentApiAuthMiddleware
 from src.models.agent_api_key import AgentApiKey
 from src.models.tenant import Tenant
+from src.services.activity.api_audit import audit_api_action
 from src.services.tenant_provisioning_service import (
-    DEFAULT_KEY_PERMISSIONS,
     ProvisioningError,
     TenantProvisioningService,
 )
@@ -53,7 +53,21 @@ async def get_provisioning_service(
     manager = await db.get(Tenant, api_key.tenant_id)
     if manager is None or not manager.can_manage_tenants:
         raise HTTPException(status_code=403, detail="This tenant is not enabled to manage other tenants")
-    return TenantProvisioningService(db, manager)
+    service = TenantProvisioningService(db, manager)
+    service.actor_key = api_key  # who acted, for the audit trail
+    service.request = request
+    return service
+
+
+def _audit(service: TenantProvisioningService, action: str, customer_id, **details) -> None:
+    audit_api_action(
+        service.actor_key,
+        service.request,
+        action,
+        "managed_tenant",
+        resource_id=customer_id,
+        details={"customer_tenant_id": str(customer_id), **details},
+    )
 
 
 def _http(err: ProvisioningError) -> HTTPException:
@@ -128,11 +142,16 @@ class LLMKeyRequest(BaseModel):
 class CreateKeyRequest(BaseModel):
     agent_id: UUID
     name: str = Field(..., min_length=1, max_length=255)
-    permissions: list[str] = Field(default_factory=lambda: list(DEFAULT_KEY_PERMISSIONS))
+    permissions: list[str] | None = Field(
+        None,
+        description="Defaults to chat, read, write, billing:read for a server-side key, or chat only for a browser key",
+    )
     rate_limit_per_minute: int = Field(60, ge=1, le=1000)
     rate_limit_per_hour: int = Field(1000, ge=1, le=100000)
     rate_limit_per_day: int = Field(10000, ge=1, le=1000000)
-    allowed_origins: list[str] | None = None
+    allowed_origins: list[str] | None = Field(
+        None, description="Set this only for a key used from browsers; such a key can only chat"
+    )
 
 
 class KeyInfo(BaseModel):
@@ -192,6 +211,7 @@ async def create_tenant(
         plan = await build_plan_response(service.db, tenant.id)
     except ProvisioningError as err:
         raise _http(err) from err
+    _audit(service, "managed_tenant.created", tenant.id, external_ref=body.external_ref, plan=body.plan)
     return TenantDetail(**_tenant_info(tenant).model_dump(), plan=plan)
 
 
@@ -230,6 +250,7 @@ async def update_tenant(
         tenant = await service.update_tenant(tenant, name=body.name, external_ref=body.external_ref)
     except ProvisioningError as err:
         raise _http(err) from err
+    _audit(service, "managed_tenant.updated", tenant.id, **body.model_dump(exclude_none=True))
     return _tenant_info(tenant)
 
 
@@ -253,6 +274,7 @@ async def set_subscription(
         await service.set_subscription(tenant, **body.model_dump())
     except ProvisioningError as err:
         raise _http(err) from err
+    _audit(service, "managed_tenant.subscription_changed", tenant.id, **body.model_dump(exclude_none=True, mode="json"))
     return await build_plan_response(service.db, tenant.id)
 
 
@@ -331,6 +353,14 @@ async def create_tenant_agent(
         )
     except ProvisioningError as err:
         raise _http(err) from err
+    _audit(
+        service,
+        "managed_tenant.agent_created",
+        tenant.id,
+        agent_id=str(agent.id),
+        template_agent_id=str(body.template_agent_id),
+        llm_key_supplied=bool(body.llm_api_key),
+    )
     return AgentSummary(
         id=str(agent.id), name=agent.agent_name, slug=agent.slug, quota_pool=agent.quota_pool, status=str(agent.status)
     )
@@ -349,6 +379,7 @@ async def set_agent_llm_key(
         await service.set_llm_key(tenant, agent_id, body.api_key)
     except ProvisioningError as err:
         raise _http(err) from err
+    _audit(service, "managed_tenant.llm_key_set", tenant.id, agent_id=str(agent_id))  # never the key itself
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -378,13 +409,22 @@ async def create_tenant_key(
     Create an API key for one of a customer's agents. The key is returned once.
 
     Allowed permissions: chat, read, write, billing:read, handoff:read, handoff:write,
-    knowledge:read, knowledge:write. Requires permission: tenants:manage
+    knowledge:read, knowledge:write. A key with ``allowed_origins`` (for browsers) can only have ``chat``:
+    anything an end user's browser holds, every end user can use. Requires permission: tenants:manage
     """
     try:
         tenant = await service.get_managed(tenant_id)
         key, plain = await service.create_api_key(tenant, **body.model_dump())
     except ProvisioningError as err:
         raise _http(err) from err
+    _audit(
+        service,
+        "managed_tenant.api_key_created",
+        tenant.id,
+        key_id=str(key.id),
+        agent_id=str(body.agent_id),
+        permissions=list(key.permissions or []),
+    )
     return CreatedKey(**_key_info(key).model_dump(), key=plain)
 
 
@@ -406,4 +446,5 @@ async def revoke_tenant_key(
         raise HTTPException(status_code=404, detail="API key not found")
     key.is_active = False
     await service.db.commit()
+    _audit(service, "managed_tenant.api_key_revoked", tenant.id, key_id=str(key_id))
     return Response(status_code=status.HTTP_204_NO_CONTENT)

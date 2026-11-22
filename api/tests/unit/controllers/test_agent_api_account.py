@@ -187,10 +187,10 @@ class TestBillingReadPermission:
             (["chat"], False),
             (["agent:chat", "agent:read"], False),
             (["billing:read"], True),
-            (["*"], True),
+            (["*"], False),  # scoped permissions must be listed explicitly
         ],
     )
-    def test_only_billing_read_or_wildcard_grants_access(self, permissions, allowed):
+    def test_only_an_explicit_billing_read_grants_access(self, permissions, allowed):
         key = MagicMock(permissions=permissions)
         assert AgentApiKeyService.check_permission(key, "billing:read") is allowed
 
@@ -211,6 +211,15 @@ class TestBillingReadPermission:
             (["agent:read"], "read", True),
             (["chat"], "chat", True),
             (["*"], "write", True),
+            # Reproduces the escalation: "*" or a look-alike must never satisfy a scoped permission
+            (["*"], "tenants:manage", False),
+            (["foo:tenants:manage"], "tenants:manage", False),
+            (["agent:tenants:manage"], "tenants:manage", False),
+            (["*"], "webhooks:manage", False),
+            (["*"], "knowledge:write", False),
+            (["x:billing:read"], "read", False),
+            (["a:b:read"], "read", False),
+            (["tenants:manage"], "tenants:manage", True),
         ],
     )
     def test_scoped_permissions_do_not_grant_plain_verbs(self, permissions, required, allowed):
@@ -271,3 +280,34 @@ class TestUsageHistory:
     @pytest.mark.parametrize("days", [0, 93, -1])
     def test_days_must_be_between_1_and_92(self, client, auth, days):
         assert client.get(f"/api/v1/public/account/usage/history?days={days}").status_code == 422
+
+
+class TestRequestedPermissions:
+    """The dashboard and key API can no longer create or edit a key into a tenant-management key."""
+
+    @pytest.mark.parametrize(
+        "permissions",
+        [["tenants:manage"], ["x:tenants:manage"], ["tenants:read"], ["Tenants:Manage"], ["a:b:c"], ["chat\n"],
+         ["with space"], [""], ["x" * 41], [f"p{i}" for i in range(21)]],
+    )  # fmt: skip
+    def test_operator_only_or_malformed_permissions_are_refused(self, permissions):
+        from pydantic import ValidationError
+
+        from src.schemas.agent_api import CreateApiKeyRequest, UpdateApiKeyRequest
+
+        with pytest.raises(ValidationError):
+            CreateApiKeyRequest(key_name="k", agent_id=uuid4(), permissions=permissions)
+        with pytest.raises(ValidationError):
+            UpdateApiKeyRequest(permissions=permissions)
+
+    @pytest.mark.parametrize(
+        "permissions",
+        [["chat"], ["agent:chat", "agent:read"], ["*"], ["billing:read", "webhooks:manage"], ["handoff:write"],
+         ["knowledge:read", "knowledge:write"], ["mcp_server", "a2a", "conversations"]],
+    )  # fmt: skip
+    def test_normal_permissions_are_accepted(self, permissions):
+        from src.schemas.agent_api import CreateApiKeyRequest, UpdateApiKeyRequest
+
+        assert CreateApiKeyRequest(key_name="k", agent_id=uuid4(), permissions=permissions).permissions == permissions
+        assert UpdateApiKeyRequest(permissions=permissions).permissions == permissions
+        assert UpdateApiKeyRequest().permissions is None

@@ -7,6 +7,7 @@ Handles API key generation, validation, rate limiting, and usage tracking.
 import hmac
 import ipaddress
 import logging
+import re
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
@@ -61,6 +62,24 @@ def _get_redis_client():
 
 # Scopes that only ever grant their own exact permissions (see check_permission)
 SCOPED_PERMISSION_PREFIXES = frozenset({"billing", "knowledge", "webhooks", "tenants", "handoff"})
+
+# Permissions that can never be requested through the dashboard or the key API. Tenant management keys are only
+# issued by a platform operator (enable_tenant_provisioning.py).
+OPERATOR_ONLY_PERMISSION_PREFIXES = frozenset({"tenants"})
+_PERMISSION_PATTERN = re.compile(r"\*|[a-z0-9_-]{1,40}(:[a-z0-9_-]{1,40})?")
+MAX_PERMISSIONS_PER_KEY = 20
+
+
+def validate_requested_permissions(permissions: list[str]) -> list[str]:
+    """Check permissions asked for when a key is created or changed. Raises ValueError with the reason."""
+    if len(permissions) > MAX_PERMISSIONS_PER_KEY:
+        raise ValueError(f"At most {MAX_PERMISSIONS_PER_KEY} permissions per key")
+    for permission in permissions:
+        if not isinstance(permission, str) or not _PERMISSION_PATTERN.fullmatch(permission):
+            raise ValueError(f"Invalid permission {permission!r}")
+        if permission.split(":", 1)[0] in OPERATOR_ONLY_PERMISSION_PREFIXES:
+            raise ValueError(f"Permission {permission!r} can only be granted by a platform operator")
+    return permissions
 
 
 class AgentApiKeyService:
@@ -357,25 +376,29 @@ class AgentApiKeyService:
         Returns:
             True if permission granted, False otherwise
         """
-        if not api_key.permissions:
+        permissions = api_key.permissions or []
+        if not permissions:
             return False
 
-        # Wildcard grants everything
-        if "*" in api_key.permissions:
-            return True
-
         # Exact match
-        if required_permission in api_key.permissions:
+        if required_permission in permissions:
             return True
 
-        # Namespaced match: "scope:verb" satisfies "verb"
-        # e.g. "agent:chat" satisfies required "chat"
-        # Permissions with their own scope (billing:read, knowledge:write, ...) never satisfy the plain
-        # verb: a key meant only to show usage must not be able to read or delete conversations.
+        # Scoped permissions (tenants:manage, billing:read, knowledge:write, ...) are only ever granted by being
+        # listed exactly: never by the "*" wildcard and never by a look-alike such as "x:tenants:manage".
+        if required_permission.split(":", 1)[0] in SCOPED_PERMISSION_PREFIXES:
+            return False
+
+        # Wildcard grants every plain permission
+        if "*" in permissions:
+            return True
+
+        # Namespaced match: "scope:verb" satisfies "verb", e.g. "agent:chat" satisfies "chat". Only a single
+        # "scope:verb" whose scope is not one of the scoped prefixes counts, so "x:billing:read" is not "read".
         suffix = f":{required_permission}"
         return any(
-            perm.endswith(suffix) and perm.split(":", 1)[0] not in SCOPED_PERMISSION_PREFIXES
-            for perm in api_key.permissions
+            perm.count(":") == 1 and perm.endswith(suffix) and perm.split(":", 1)[0] not in SCOPED_PERMISSION_PREFIXES
+            for perm in permissions
         )
 
     @staticmethod

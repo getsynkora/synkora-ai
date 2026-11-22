@@ -6,6 +6,7 @@ tenant are also delivered to the endpoints of the tenant that manages it, so a p
 tenants hears about all of them on one endpoint.
 """
 
+import sqlalchemy as sa
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 
@@ -33,3 +34,4 @@ class WebhookEndpoint(BaseModel):
     )
     is_active = Column(Boolean, nullable=False, default=True, comment="Switched off after repeated failures")
     consecutive_failures = Column(Integer, nullable=False, default=0)
+    last_tested_at = Column(sa.DateTime(timezone=True), nullable=True, comment="Last test ping, for the cooldown")

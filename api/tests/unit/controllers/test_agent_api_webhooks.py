@@ -23,6 +23,7 @@ def _endpoint(**kw):
         is_active=True,
         created_at=datetime(2026, 11, 1, tzinfo=UTC),
         secret="enc(secret)",
+        last_tested_at=None,
     )
     for k, v in kw.items():
         setattr(e, k, v)
@@ -83,9 +84,34 @@ class TestCreate:
         assert response.status_code == 400 and "bogus" in response.json()["detail"]
 
     def test_unsafe_url_is_refused(self, client, db):
+        db.scalar.return_value = 0
         with patch.object(hooks, "destination_error", return_value="private address"):
             response = client.post("/api/v1/public/webhooks", json={"url": "https://10.0.0.1/x"})
         assert response.status_code == 400 and "private address" in response.json()["detail"]
+
+    def test_the_endpoint_limit_is_checked_before_any_dns_lookup(self, client, db):
+        db.scalar.return_value = hooks.MAX_ENDPOINTS_PER_TENANT
+        with patch.object(hooks, "destination_error") as lookup:
+            response = client.post("/api/v1/public/webhooks", json={"url": "https://x.example.com"})
+        assert response.status_code == 409
+        lookup.assert_not_called()
+
+    def test_a_dns_lookup_that_never_answers_is_cut_off(self, client, db):
+        """Reproduces a hostile nameserver tying up the threads every API request relies on."""
+        import time
+
+        db.scalar.return_value = 0
+
+        def hang(_url):
+            time.sleep(0.5)
+            return None
+
+        with (
+            patch.object(hooks, "destination_error", side_effect=hang),
+            patch.object(hooks, "DNS_DEADLINE_SECONDS", 0.05),
+        ):
+            response = client.post("/api/v1/public/webhooks", json={"url": "https://slow.example.com"})
+        assert response.status_code == 400 and hooks.DESTINATION_REFUSED in response.json()["detail"]
 
     def test_endpoint_limit(self, client, db):
         db.scalar.return_value = hooks.MAX_ENDPOINTS_PER_TENANT
@@ -132,6 +158,23 @@ class TestManage:
             response = client.post(f"/api/v1/public/webhooks/{uuid4()}/test")
         assert response.status_code == 409 and "Reactivate" in response.json()["detail"]
         deliver.assert_not_called()
+
+    def test_an_endpoint_can_be_tested_once_a_minute(self, client, db):
+        """Reproduces the test action being used to flood the delivery workers."""
+        from datetime import timedelta
+
+        endpoint = _endpoint(last_tested_at=datetime.now(UTC) - timedelta(seconds=10))
+        db.scalar.return_value = endpoint
+        with patch.object(hooks, "deliver_to") as deliver:
+            response = client.post(f"/api/v1/public/webhooks/{uuid4()}/test")
+        assert response.status_code == 429
+        deliver.assert_not_called()
+
+        endpoint.last_tested_at = datetime.now(UTC) - timedelta(seconds=hooks.TEST_COOLDOWN_SECONDS + 1)
+        with patch.object(hooks, "deliver_to") as deliver:
+            assert client.post(f"/api/v1/public/webhooks/{uuid4()}/test").status_code == 202
+        deliver.assert_called_once()
+        assert (datetime.now(UTC) - endpoint.last_tested_at).total_seconds() < 5
 
     def test_test_sends_a_ping(self, client, db):
         endpoint = _endpoint()

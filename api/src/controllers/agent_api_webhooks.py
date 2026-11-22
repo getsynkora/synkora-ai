@@ -13,9 +13,10 @@ using the secret returned when the endpoint was created.
 import asyncio
 import logging
 import uuid
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,8 +25,10 @@ from src.core.database import get_async_db
 from src.middleware.agent_api_auth import require_permission
 from src.models.agent_api_key import AgentApiKey
 from src.models.webhook_endpoint import WebhookEndpoint
+from src.services.activity.api_audit import audit_api_action
 from src.services.agents.security import encrypt_value
 from src.services.outbound_webhooks import (
+    DESTINATION_REFUSED,
     EVENT_PING,
     MAX_ENDPOINTS_PER_TENANT,
     SUBSCRIBABLE_EVENTS,
@@ -38,6 +41,23 @@ from src.services.outbound_webhooks import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/public/webhooks", tags=["Webhooks API"])
+
+
+# DNS lookups for registration run on their own small pool with a deadline, so a host name whose nameserver never
+# answers cannot tie up the threads the rest of the API relies on.
+_DNS_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="webhook-dns")
+DNS_DEADLINE_SECONDS = 5
+TEST_COOLDOWN_SECONDS = 60
+
+
+async def _check_destination(url: str) -> str | None:
+    loop = asyncio.get_running_loop()
+    try:
+        return await asyncio.wait_for(
+            loop.run_in_executor(_DNS_EXECUTOR, destination_error, url), timeout=DNS_DEADLINE_SECONDS
+        )
+    except TimeoutError:
+        return DESTINATION_REFUSED
 
 
 class CreateWebhookRequest(BaseModel):
@@ -82,6 +102,7 @@ async def _own_endpoint(db: AsyncSession, api_key: AgentApiKey, webhook_id: uuid
 @router.post("", response_model=CreatedWebhook, status_code=status.HTTP_201_CREATED)
 async def create_webhook(
     body: CreateWebhookRequest,
+    request: Request,
     api_key: AgentApiKey = Depends(require_permission("webhooks:manage")),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -91,15 +112,16 @@ async def create_webhook(
         raise HTTPException(
             status_code=400, detail=f"Unknown events {unknown}. Choose from {sorted(SUBSCRIBABLE_EVENTS)}"
         )
-    problem = await asyncio.to_thread(destination_error, body.url)  # DNS lookup: keep it off the event loop
-    if problem:
-        raise HTTPException(status_code=400, detail=f"This URL cannot be used: {problem}")
-
+    # The cheap check first, so a tenant at its limit cannot trigger DNS lookups at all
     existing = await db.scalar(
         select(func.count(WebhookEndpoint.id)).where(WebhookEndpoint.tenant_id == api_key.tenant_id)
     )
     if (existing or 0) >= MAX_ENDPOINTS_PER_TENANT:
         raise HTTPException(status_code=409, detail=f"At most {MAX_ENDPOINTS_PER_TENANT} webhook endpoints")
+
+    problem = await _check_destination(body.url)
+    if problem:
+        raise HTTPException(status_code=400, detail=f"This URL cannot be used: {problem}")
 
     secret = new_secret()
     endpoint = WebhookEndpoint(
@@ -114,6 +136,7 @@ async def create_webhook(
     db.add(endpoint)
     await db.commit()
     await db.refresh(endpoint)
+    audit_api_action(api_key, request, "webhook.created", "webhook_endpoint", endpoint.id, {"events": endpoint.events})
     return CreatedWebhook(**_info(endpoint).model_dump(), secret=secret)
 
 
@@ -134,6 +157,7 @@ async def list_webhooks(
 @router.delete("/{webhook_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_webhook(
     webhook_id: uuid.UUID,
+    request: Request,
     api_key: AgentApiKey = Depends(require_permission("webhooks:manage")),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -141,12 +165,14 @@ async def delete_webhook(
     endpoint = await _own_endpoint(db, api_key, webhook_id)
     await db.delete(endpoint)
     await db.commit()
+    audit_api_action(api_key, request, "webhook.deleted", "webhook_endpoint", webhook_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{webhook_id}/reactivate", response_model=WebhookInfo)
 async def reactivate_webhook(
     webhook_id: uuid.UUID,
+    request: Request,
     api_key: AgentApiKey = Depends(require_permission("webhooks:manage")),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -155,6 +181,7 @@ async def reactivate_webhook(
     endpoint.is_active = True
     endpoint.consecutive_failures = 0
     await db.commit()
+    audit_api_action(api_key, request, "webhook.reactivated", "webhook_endpoint", webhook_id)
     await db.refresh(endpoint)
     return _info(endpoint)
 
@@ -171,6 +198,13 @@ async def test_webhook(
         raise HTTPException(
             status_code=409, detail="This endpoint is switched off after repeated failures. Reactivate it first"
         )
+    now = datetime.now(UTC)
+    if endpoint.last_tested_at and (now - endpoint.last_tested_at).total_seconds() < TEST_COOLDOWN_SECONDS:
+        raise HTTPException(
+            status_code=429, detail=f"An endpoint can be tested once every {TEST_COOLDOWN_SECONDS} seconds"
+        )
+    endpoint.last_tested_at = now
+    await db.commit()
     event = build_event(EVENT_PING, None, {"message": "Webhook endpoint is working"})
     deliver_to(endpoint.id, event)
     return {"queued": True, "event_id": event["id"]}

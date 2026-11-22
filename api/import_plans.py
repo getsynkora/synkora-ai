@@ -43,6 +43,16 @@ async def main(path: str, dry_run: bool) -> int:
             return 1
     for name, state in outcome.items():
         print(f"{state}: {name}")
+
+    # The public plan list is cached; drop it so changes show at once
+    try:
+        from src.config.redis import get_redis_async
+
+        redis = get_redis_async()
+        if redis:
+            await redis.delete("billing:plans")
+    except Exception as err:
+        print(f"Note: could not clear the cached plan list ({type(err).__name__}); it refreshes within an hour")
     return 0
 
 

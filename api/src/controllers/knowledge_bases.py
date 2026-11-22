@@ -1,5 +1,6 @@
 """Knowledge Base API endpoints."""
 
+import asyncio
 import logging
 from uuid import UUID
 
@@ -27,6 +28,7 @@ from src.models.knowledge_base import (
 from src.models.tenant import Tenant, TenantPlan, TenantStatus
 from src.services.knowledge_base import RAGService
 from src.services.knowledge_base.embedding_service import EmbeddingService
+from src.services.security.document_limits import DocumentLimitError, docx_text, pdf_text_pymupdf
 from src.services.security.file_security import FileSecurityService, ScannerUnavailableError
 from src.services.storage.s3_storage import S3StorageService
 from src.tasks.kb_tasks import crawl_and_process_kb, process_kb_documents
@@ -613,6 +615,25 @@ ALLOWED_MIME_TYPES = {
 }
 
 
+MAX_KB_PDF_PAGES = 2000
+MAX_KB_TEXT_CHARS = 5_000_000
+
+
+def _extract_kb_text(content: bytes, file_type: str) -> str:
+    """Text of an uploaded knowledge-base document, with size, page and text limits. Runs in a worker thread."""
+    if file_type in ("txt", "md", "csv"):
+        return content.decode("utf-8", errors="ignore")[:MAX_KB_TEXT_CHARS]
+    if file_type == "html":
+        from bs4 import BeautifulSoup
+
+        return BeautifulSoup(content, "html.parser").get_text(separator="\n", strip=True)[:MAX_KB_TEXT_CHARS]
+    if file_type == "pdf":
+        return pdf_text_pymupdf(content, MAX_KB_PDF_PAGES, MAX_KB_TEXT_CHARS)
+    if file_type == "docx":
+        return docx_text(content, MAX_KB_TEXT_CHARS)
+    return ""
+
+
 @router.post("/{kb_id}/documents/upload", response_model=DocumentUploadResponse)
 async def upload_documents(
     kb_id: int,
@@ -741,28 +762,9 @@ async def upload_documents(
                     },
                 )
 
-                # Extract text content based on file type
-                text_content = ""
-                if file_type == "txt" or file_type == "md" or file_type == "csv":
-                    text_content = content.decode("utf-8", errors="ignore")
-                elif file_type == "html":
-                    from bs4 import BeautifulSoup
-
-                    soup = BeautifulSoup(content, "html.parser")
-                    text_content = soup.get_text(separator="\n", strip=True)
-                elif file_type == "pdf":
-                    import fitz  # PyMuPDF
-
-                    doc = fitz.open(stream=content, filetype="pdf")
-                    text_content = "\n".join([page.get_text() for page in doc])
-                    doc.close()
-                elif file_type == "docx":
-                    from io import BytesIO
-
-                    from docx import Document as DocxDocument
-
-                    doc = DocxDocument(BytesIO(content))
-                    text_content = "\n".join([para.text for para in doc.paragraphs])
+                # Extract text content based on file type. Parsing is blocking and a small file can unpack into
+                # something huge, so it runs in a worker thread with size, page and text limits.
+                text_content = await asyncio.to_thread(_extract_kb_text, content, file_type)
 
                 # Create a stub Document record immediately so the file
                 # is visible in the browser before Celery finishes.
@@ -810,7 +812,9 @@ async def upload_documents(
 
             except Exception as e:
                 logger.error(f"Error processing file {file.filename}: {e}")
-                failed_files.append({"filename": file.filename, "error": str(e)})
+                # Our own limit messages are safe to show; anything else may carry storage or parser internals
+                reason = str(e) if isinstance(e, DocumentLimitError) else "This file could not be processed"
+                failed_files.append({"filename": file.filename, "error": reason})
                 continue
 
         # Dispatch chunking + embedding to Celery so the HTTP request returns immediately

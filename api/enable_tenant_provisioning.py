@@ -23,6 +23,7 @@ from sqlalchemy import select
 
 from src.core.database import get_async_session_factory
 from src.models.agent import Agent
+from src.models.agent_api_key import AgentApiKey
 from src.models.tenant import Tenant
 from src.services.agent_api.api_key_service import AgentApiKeyService
 
@@ -35,6 +36,24 @@ async def main(tenant_id: uuid.UUID, agent_id: uuid.UUID | None, disable: bool) 
             return 1
 
         tenant.can_manage_tenants = not disable
+        if disable:
+            # Switch off the tenant's management keys too, so re-enabling later does not silently revive them
+            keys = (
+                (
+                    await db.execute(
+                        select(AgentApiKey).where(
+                            AgentApiKey.tenant_id == tenant_id,
+                            AgentApiKey.is_active.is_(True),
+                            AgentApiKey.permissions.any("tenants:manage"),
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for key in keys:
+                key.is_active = False
+            print(f"Deactivated {len(keys)} tenant-management key(s)")
         await db.commit()
         print(f"{'Disabled' if disable else 'Enabled'} tenant management for {tenant.name} ({tenant.id})")
 

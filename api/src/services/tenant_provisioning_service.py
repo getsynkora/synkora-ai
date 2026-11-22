@@ -19,8 +19,10 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import urlsplit
 
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent import Agent
@@ -43,6 +45,9 @@ GRANTABLE_KEY_PERMISSIONS = frozenset(
     {"chat", "read", "write", "billing:read", "handoff:read", "handoff:write", "knowledge:read", "knowledge:write"}
 )
 DEFAULT_KEY_PERMISSIONS = ["chat", "read", "write", "billing:read"]
+# A key restricted to browser origins is meant to be shipped to end users' browsers. Every end user can read it, so it
+# may only chat: reading, listing, changing or deleting conversations, usage or knowledge must happen server-side.
+BROWSER_KEY_PERMISSIONS = frozenset({"chat"})
 
 
 class ProvisioningError(Exception):
@@ -51,6 +56,33 @@ class ProvisioningError(Exception):
     def __init__(self, message: str, status_code: int = 400):
         super().__init__(message)
         self.status_code = status_code
+
+
+# Anything whose name suggests a credential is never copied from a template to a customer
+_SENSITIVE_NAME_PARTS = ("key", "token", "secret", "password", "passwd", "auth", "header", "credential", "cookie")
+
+
+def _without_credentials(value: Any) -> Any:
+    """A copy of ``value`` with credential-like keys removed at every level."""
+    if isinstance(value, dict):
+        return {
+            k: _without_credentials(v)
+            for k, v in value.items()
+            if not any(part in str(k).lower() for part in _SENSITIVE_NAME_PARTS)
+        }
+    if isinstance(value, list):
+        return [_without_credentials(v) for v in value]
+    return value
+
+
+def _safe_api_base(url: str | None) -> str | None:
+    """Keep a custom model endpoint only when it carries no user name, password or query string (which may hold a key)."""
+    if not url:
+        return url
+    parsed = urlsplit(url)
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        return None
+    return url
 
 
 def _slugify(text: str) -> str:
@@ -119,6 +151,9 @@ class TenantProvisioningService:
                 await self._start_subscription(tenant, plan_row, cycle, period_start, period_end)
             else:
                 await self.db.commit()
+        except IntegrityError:
+            await self.db.rollback()
+            raise ProvisioningError(f"A tenant with external_ref {external_ref!r} already exists", 409) from None
         except Exception:
             await self.db.rollback()
             raise
@@ -320,8 +355,10 @@ class TenantProvisioningService:
         Create an agent in a customer tenant from one of the manager's own template agents.
 
         Copies prompt, description, suggestions, category, tags and the LLM provider, model and
-        parameters. Never copies secrets or links to the manager's data: the new agent has no LLM
-        key until ``llm_api_key`` is supplied (now or later with ``set_llm_key``).
+        parameters. Never copies secrets or links to the manager's data: LLM keys, tool credentials,
+        knowledge-base links, credential-like model parameters (headers, tokens, ...) and endpoint
+        URLs that embed credentials are all left out. The new agent has no LLM key until
+        ``llm_api_key`` is supplied (now or later with ``set_llm_key``).
         """
         template = await self.db.scalar(
             select(Agent).where(Agent.id == template_agent_id, Agent.tenant_id == self.manager.id)
@@ -345,7 +382,9 @@ class TenantProvisioningService:
         if taken:
             raise ProvisioningError(f"An agent named {name!r} already exists in this tenant", 409)
 
-        legacy_llm = {k: v for k, v in (template.llm_config or {}).items() if k not in {"api_key"}}
+        legacy_llm = _without_credentials(dict(template.llm_config or {}))
+        if "api_base" in legacy_llm:
+            legacy_llm["api_base"] = _safe_api_base(legacy_llm["api_base"])
         if llm_api_key:
             legacy_llm["api_key"] = encrypt_value(llm_api_key)
 
@@ -385,11 +424,13 @@ class TenantProvisioningService:
                     provider=config.provider,
                     model_name=config.model_name,
                     api_key=encrypt_value(llm_api_key) if has_key else "",
-                    api_base=config.api_base,
+                    api_base=_safe_api_base(config.api_base),
                     temperature=config.temperature,
                     max_tokens=config.max_tokens,
                     top_p=config.top_p,
-                    additional_params=dict(config.additional_params) if config.additional_params else None,
+                    additional_params=_without_credentials(dict(config.additional_params))
+                    if config.additional_params
+                    else None,
                     is_default=config.is_default,
                     display_order=config.display_order,
                     enabled=has_key,
@@ -423,7 +464,18 @@ class TenantProvisioningService:
     ) -> tuple[AgentApiKey, str]:
         """Create an API key for a customer's agent. The plain key is returned once and never stored."""
         await self._agent_of(tenant, agent_id)
-        wanted = permissions or DEFAULT_KEY_PERMISSIONS
+        if allowed_origins:
+            wanted = ["chat"] if permissions is None else list(permissions)
+            too_broad = sorted(set(wanted) - BROWSER_KEY_PERMISSIONS)
+            if too_broad:
+                raise ProvisioningError(
+                    f"A key for browsers (allowed_origins) can only chat; {too_broad} must stay on your server. "
+                    "Create a separate server-side key for those."
+                )
+        else:
+            wanted = list(DEFAULT_KEY_PERMISSIONS) if permissions is None else list(permissions)
+        if not wanted:
+            raise ProvisioningError("A key needs at least one permission")
         refused = sorted(set(wanted) - GRANTABLE_KEY_PERMISSIONS)
         if refused:
             raise ProvisioningError(

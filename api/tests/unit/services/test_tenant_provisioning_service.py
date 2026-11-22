@@ -369,3 +369,110 @@ class TestAgentPoolMustBeInTheCustomersPlan:
                     MagicMock(id=uuid4()), template.id, "Helper", quota_pool="typo"
                 )
         assert quota.return_value.unassigned_pool_keys.await_args.args[1] == "typo"
+
+
+class TestEmptyPermissionList:
+    async def test_an_empty_permission_list_is_refused_not_turned_into_defaults(self, service):
+        with patch.object(service, "_agent_of", AsyncMock()):
+            with pytest.raises(ProvisioningError, match="at least one permission"):
+                await service.create_api_key(MagicMock(id=uuid4()), uuid4(), "k", permissions=[])
+
+
+class TestNoCredentialsCrossTenants:
+    def test_credential_like_parameters_are_removed_at_every_level(self):
+        params = {
+            "temperature": 0.2,
+            "reasoning_effort": "high",
+            "extra_headers": {"Authorization": "Bearer manager-secret"},
+            "api_key": "x",
+            "nested": {"x_api_key": "y", "keep": 1, "Cookie": "z", "list": [{"token": "t", "ok": 2}]},
+        }
+        cleaned = svc._without_credentials(params)
+        assert cleaned == {"temperature": 0.2, "reasoning_effort": "high", "nested": {"keep": 1, "list": [{"ok": 2}]}}
+        assert params["extra_headers"]  # the template itself is untouched
+
+    @pytest.mark.parametrize(
+        ("url", "kept"),
+        [
+            ("https://gateway.example.com/v1", True),
+            ("https://user:pass@gateway.example.com/v1", False),
+            ("https://gateway.example.com/v1?api_key=secret", False),
+            ("https://gateway.example.com/v1#token", False),
+            (None, True),
+        ],
+    )
+    def test_endpoint_urls_that_embed_credentials_are_dropped(self, url, kept):
+        assert (svc._safe_api_base(url) == url) is kept
+
+    async def test_a_cloned_agent_gets_no_template_credentials(self, service, db):
+        template = MagicMock(spec=Agent)
+        template.id, template.tenant_id = uuid4(), MANAGER_ID
+        template.agent_type, template.description, template.system_prompt = "LLM", "d", "p"
+        template.llm_config = {
+            "provider": "openai",
+            "api_key": "k",
+            "extra_headers": {"X-Key": "s"},
+            "api_base": "https://u:p@g.example.com",
+        }
+        template.suggestion_prompts, template.category, template.tags, template.quota_pool = [], None, [], None
+        config = MagicMock(spec=AgentLLMConfig)
+        config.name, config.provider, config.model_name = "Default", "openai", "gpt"
+        config.api_base = "https://g.example.com/v1?key=abc"
+        config.temperature, config.max_tokens, config.top_p, config.is_default, config.display_order = (
+            0.1,
+            None,
+            None,
+            True,
+            0,
+        )
+        config.additional_params = {"extra_headers": {"Authorization": "Bearer m"}, "seed": 7}
+        db.scalar.side_effect = [template, None]
+        db.execute.return_value = _result(items=[config])
+        with patch.object(svc, "PlanRestrictionService") as restrictions, patch.object(svc, "QuotaService") as quota:
+            quota.return_value.unassigned_pool_keys = AsyncMock(return_value=None)
+            restrictions.return_value.enforce_agent_limit = AsyncMock()
+            agent = await service.create_agent_from_template(MagicMock(id=uuid4()), template.id, "Helper")
+
+        assert agent.llm_config == {"provider": "openai", "api_base": None}
+        copied = next(c.args[0] for c in db.add.call_args_list if isinstance(c.args[0], AgentLLMConfig))
+        assert copied.additional_params == {"seed": 7}
+        assert copied.api_base is None
+
+
+class TestDuplicateExternalRef:
+    async def test_a_concurrent_create_with_the_same_ref_is_a_conflict_not_a_server_error(self, service, db):
+        from sqlalchemy.exc import IntegrityError
+
+        db.scalar.return_value = None
+        db.flush.side_effect = IntegrityError("insert", {}, Exception("duplicate key"))
+        with pytest.raises(ProvisioningError) as err:
+            await service.create_tenant("Acme", external_ref="c1")
+        assert err.value.status_code == 409
+        db.rollback.assert_awaited_once()
+
+
+class TestBrowserKeys:
+    """Reproduces a browser-held key with read/write letting any end user list and read everyone's conversations."""
+
+    async def _create(self, service, **kwargs):
+        with (
+            patch.object(service, "_agent_of", AsyncMock()),
+            patch.object(svc, "PlanRestrictionService") as restrictions,
+            patch.object(
+                svc.AgentApiKeyService, "create_api_key", AsyncMock(return_value=(MagicMock(), "sk"))
+            ) as create,
+        ):
+            restrictions.return_value.enforce_api_key_limit = AsyncMock()
+            await service.create_api_key(MagicMock(id=uuid4()), uuid4(), "k", **kwargs)
+        return create.call_args.kwargs["permissions"]
+
+    @pytest.mark.parametrize("permissions", [["read"], ["chat", "write"], ["chat", "billing:read"], ["knowledge:read"]])
+    async def test_a_browser_key_can_only_chat(self, service, permissions):
+        with pytest.raises(ProvisioningError, match="can only chat"):
+            await self._create(service, permissions=permissions, allowed_origins=["https://app.example.com"])
+
+    async def test_a_browser_key_defaults_to_chat_only(self, service):
+        assert await self._create(service, allowed_origins=["https://app.example.com"]) == ["chat"]
+
+    async def test_a_server_key_keeps_the_broader_defaults(self, service):
+        assert set(await self._create(service)) == {"chat", "read", "write", "billing:read"}

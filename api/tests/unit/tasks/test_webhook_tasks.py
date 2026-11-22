@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 import requests
-from celery.exceptions import MaxRetriesExceededError, Retry
+from celery.exceptions import MaxRetriesExceededError, Retry, SoftTimeLimitExceeded
 
 from src.services.outbound_webhooks import Destination
 from src.tasks import webhook_tasks as tasks
@@ -127,3 +127,52 @@ class TestDelivery:
         with patch.object(tasks, "post_pinned", return_value=200):
             _run()
         db.close.assert_called_once()
+
+
+class TestSlowReceivers:
+    """A receiver that trickles its answer must not keep a worker busy or stay switched on."""
+
+    def test_short_socket_timeouts_are_used(self, db):
+        with patch.object(tasks, "post_pinned", return_value=200) as post:
+            _run()
+        assert post.call_args.kwargs["timeout"] == (tasks.CONNECT_TIMEOUT_SECONDS, tasks.READ_TIMEOUT_SECONDS)
+
+    def test_the_attempt_has_a_hard_wall_clock_limit(self):
+        assert tasks.deliver_webhook_event.soft_time_limit <= 15
+        assert tasks.deliver_webhook_event.time_limit <= 20
+
+    def test_hitting_the_time_limit_counts_as_a_failed_attempt(self, db, endpoint):
+        """Reproduces the soft time limit escaping as an unhandled error that never counted against the endpoint."""
+        with (
+            patch.object(tasks, "post_pinned", side_effect=SoftTimeLimitExceeded()),
+            patch.object(tasks.deliver_webhook_event, "retry", side_effect=MaxRetriesExceededError()),
+        ):
+            _run()
+        assert endpoint.consecutive_failures == 1
+
+    def test_a_slow_success_counts_as_a_failure(self, db, endpoint):
+        clock = iter([100.0, 100.0 + tasks.SLOW_DELIVERY_SECONDS + 1])
+        with (
+            patch.object(tasks.time, "monotonic", side_effect=lambda: next(clock)),
+            patch.object(tasks, "post_pinned", return_value=200),
+            patch.object(tasks.deliver_webhook_event, "retry", side_effect=MaxRetriesExceededError()),
+        ):
+            _run()
+        assert endpoint.consecutive_failures == 1
+
+    def test_failure_logs_never_include_the_url(self, db, caplog):
+        error = requests.ConnectionError(
+            "HTTPSConnectionPool(host=x): Max retries exceeded with url: /hook?token=SECRET"
+        )
+        with (
+            patch.object(tasks, "post_pinned", side_effect=error),
+            patch.object(tasks.deliver_webhook_event, "retry", side_effect=MaxRetriesExceededError()),
+            caplog.at_level("INFO"),
+        ):
+            _run()
+        assert "SECRET" not in caplog.text and "ConnectionError" in caplog.text
+
+    def test_delivery_runs_on_its_own_queue(self):
+        from src.celery_app import celery_app
+
+        assert celery_app.conf.task_routes["webhooks.deliver_event"] == {"queue": "webhooks"}

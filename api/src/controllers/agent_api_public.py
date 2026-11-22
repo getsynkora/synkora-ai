@@ -4,8 +4,6 @@ Public Agent API Controller - External API for agent interactions with Advanced 
 CRITICAL: All chat interactions are protected with prompt injection scanning.
 """
 
-import hashlib
-import hmac
 import json
 import logging
 import uuid as uuid_lib
@@ -18,7 +16,6 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.config import settings
 from src.core.database import get_async_db
 from src.middleware.agent_api_auth import require_permission
 from src.models.agent import Agent
@@ -35,6 +32,7 @@ from src.schemas.agent_api import (
     CreateConversationRequest,
     MessageFeedbackRequest,
 )
+from src.services.agents.security import decrypt_value, encrypt_value
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
 
 logger = logging.getLogger(__name__)
@@ -134,48 +132,81 @@ ATTACHMENT_FIELDS = (
     "uploaded_at",
     "extracted_text",
 )
+# What an API client sees about an uploaded file. Storage keys and internal storage URLs stay inside the token.
+PUBLIC_ATTACHMENT_FIELDS = ("file_id", "file_name", "file_type", "file_size", "download_url", "uploaded_at")
+_ATTACHMENT_TOKEN_PURPOSE = "synkora.attachment.v2"
 
 
-def _attachment_signature(attachment: dict, tenant_id: UUID, conversation_id: UUID) -> str:
+def _attachment_token(attachment: dict, tenant_id: UUID, conversation_id: UUID) -> str:
     """
-    Server-side proof that this exact attachment, every field that reaches the model, was produced by an upload
-    to this conversation. The signed text is a canonical JSON object, so fields cannot shift into each other,
-    and a fixed label keeps the key from being reused for anything else.
+    An opaque, encrypted and authenticated token for one uploaded file. It carries every field the model will see,
+    bound to this tenant and conversation, so a client can neither read internal storage details nor change or
+    forge an attachment.
     """
-    payload = json.dumps(
-        {
-            "tenant": str(tenant_id),
-            "conversation": str(conversation_id),
-            **{field: attachment.get(field) for field in ATTACHMENT_FIELDS},
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
-    )
-    label = b"synkora.attachment.v1|"
-    return hmac.new(settings.secret_key.encode(), label + payload.encode(), hashlib.sha256).hexdigest()
+    payload = {
+        "purpose": _ATTACHMENT_TOKEN_PURPOSE,
+        "tenant": str(tenant_id),
+        "conversation": str(conversation_id),
+        "attachment": {field: attachment.get(field) for field in ATTACHMENT_FIELDS},
+    }
+    return encrypt_value(json.dumps(payload, separators=(",", ":"), default=str))
 
 
 def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conversation_id: UUID | None):
-    """Accept only files returned by the attachments endpoint for this conversation, unchanged."""
+    """Accept only tokens issued by the attachments endpoint for this tenant and conversation."""
     if not attachments:
         return None
     if conversation_id is None:
         raise HTTPException(status_code=400, detail="Attachments need a conversation_id: create a conversation first")
     if len(attachments) > MAX_ATTACHMENTS:
         raise HTTPException(status_code=400, detail=f"At most {MAX_ATTACHMENTS} attachments per message")
+    refused = HTTPException(status_code=400, detail="Attachment was not uploaded to this conversation or was changed")
     clean = []
     for attachment in attachments:
-        given = str(attachment.get("signature") or "")
-        expected = _attachment_signature(attachment, tenant_id, conversation_id)
-        if not hmac.compare_digest(given, expected):
-            raise HTTPException(
-                status_code=400, detail="Attachment was not uploaded to this conversation or was changed"
-            )
-        item = {field: attachment.get(field) for field in ATTACHMENT_FIELDS}
-        item["extracted_text"] = str(attachment.get("extracted_text") or "")[:MAX_ATTACHMENT_TEXT]
+        token = attachment.get("token") if isinstance(attachment, dict) else None
+        if not isinstance(token, str) or not token:
+            raise refused
+        try:
+            payload = json.loads(decrypt_value(token))
+        except Exception:
+            raise refused from None
+        if (
+            not isinstance(payload, dict)
+            or payload.get("purpose") != _ATTACHMENT_TOKEN_PURPOSE
+            or payload.get("tenant") != str(tenant_id)
+            or payload.get("conversation") != str(conversation_id)
+            or not isinstance(payload.get("attachment"), dict)
+        ):
+            raise refused
+        stored = payload["attachment"]
+        item = {field: stored.get(field) for field in ATTACHMENT_FIELDS}
+        item["extracted_text"] = str(stored.get("extracted_text") or "")[:MAX_ATTACHMENT_TEXT]
         clean.append(item)
     return clean
+
+
+SCAN_WINDOW_CHARS = 12_000
+SCAN_WINDOW_OVERLAP = 1_000
+
+
+async def _scan_untrusted_text(text: str, api_key: AgentApiKey, client_ip: str) -> bool:
+    """
+    True if every part of ``text`` passes the prompt-injection scanner. The scanner reads a limited number of
+    characters per call, so long text is scanned in overlapping windows and nothing can hide past the first one.
+    """
+    if not text:
+        return True
+    step = SCAN_WINDOW_CHARS - SCAN_WINDOW_OVERLAP
+    for start in range(0, len(text), step):
+        result = await advanced_prompt_scanner.scan_comprehensive_async(
+            text=text[start : start + SCAN_WINDOW_CHARS],
+            user_id=f"api_key_{api_key.id}",
+            ip_address=client_ip,
+            context="agent_api_attachment",
+        )
+        if not result["is_safe"]:
+            return False
+    return True
 
 
 async def _prepare_chat(
@@ -655,14 +686,15 @@ async def create_conversation(
 async def upload_attachment(
     agent_id: UUID,
     conversation_id: UUID,
+    http_request: Request,
     file: UploadFile = File(...),
     external_user_id: str | None = Form(None),
     api_key: AgentApiKey = Depends(require_permission("write")),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
-    Upload a file (up to 10 MB) to a conversation. Pass the returned object in the ``attachments`` list of
-    the next chat message.
+    Upload a file (up to 10 MB) to a conversation. Send the returned ``token`` in the ``attachments`` list of the next
+    chat message: ``"attachments": [{"token": "..."}]``. The file's text is scanned like a chat message.
 
     Requires permission: write
     """
@@ -672,15 +704,33 @@ async def upload_attachment(
     await _load_agent(db, api_key, agent_id)
     conversation = await _load_conversation(db, agent_id, conversation_id, external_user_id, strict=True)
     content = await read_bounded_upload(file, 10 * 1024 * 1024)
-    attachment = await AttachmentService().upload_attachment(
-        file_content=content,
-        filename=file.filename,
-        content_type=file.content_type,
-        tenant_id=api_key.tenant_id,
-        conversation_id=conversation.id,
-    )
-    signature = _attachment_signature(attachment, api_key.tenant_id, conversation.id)
-    return {"attachment": {**attachment, "signature": signature}}
+    filename = (file.filename or "upload").strip()[:255] or "upload"
+    try:
+        attachment = await AttachmentService().upload_attachment(
+            file_content=content,
+            filename=filename,
+            content_type=file.content_type or "application/octet-stream",
+            tenant_id=api_key.tenant_id,
+            conversation_id=conversation.id,
+        )
+    except ValueError as err:  # unsupported type, too large, or too large when unpacked: messages are ours
+        raise HTTPException(status_code=400, detail=str(err)) from err
+
+    # The file's name and text reach the model, so they get the same injection scan as a chat message
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    untrusted = f"{attachment.get('file_name') or ''}\n{attachment.get('extracted_text') or ''}"
+    if not await _scan_untrusted_text(untrusted, api_key, client_ip):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "SECURITY_VIOLATION",
+                "message": "This file's content was blocked by the security policy.",
+                "details": {},
+            },
+        )
+
+    public = {field: attachment.get(field) for field in PUBLIC_ATTACHMENT_FIELDS}
+    return {"attachment": {**public, "token": _attachment_token(attachment, api_key.tenant_id, conversation.id)}}
 
 
 @router.put("/agents/{agent_id}/conversations/{conversation_id}/messages/{message_id}/feedback")

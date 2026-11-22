@@ -217,6 +217,19 @@ class SubscriptionService:
                     description=f"Prorated credits for upgrade to {new_plan.name}",
                     reference_id=current_subscription.id,
                 )
+            elif credit_diff < 0:
+                # A downgrade takes back the prorated difference (never more than is unused), so switching plans
+                # back and forth cannot mint credits.
+                balance = await self.credit_service.get_balance(tenant_id)
+                take_back = min(-credit_diff, max(balance.available_credits, 0) if balance else 0)
+                if take_back > 0:
+                    await self.credit_service.add_credits(
+                        tenant_id=tenant_id,
+                        amount=-take_back,
+                        transaction_type=TransactionType.ADJUSTMENT,
+                        description=f"Prorated credits removed for downgrade to {new_plan.name}",
+                        reference_id=current_subscription.id,
+                    )
 
         # Update subscription
         current_subscription.plan_id = new_plan_id

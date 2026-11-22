@@ -1287,63 +1287,102 @@ class TestStreamWithTools:
             assert any('"type": "video"' in str(e) for e in events)
 
 
-class TestMessageIsCountedBeforeTheStreamEnds:
+class TestMessageIsCountedWhenTheReplyGoesOut:
     """
-    A client that disconnects once it has the reply cancels the generator at its next yield. The plan allowance
-    and the credit deduction must already be settled by then, or the message would be free.
+    The public stream marks the plan-allowance unit as used the moment any part of the reply is about to reach the
+    client, for every kind of agent. A client that disconnects, or a failure after content went out, cannot get the
+    reply for free; the unit is only given back when nothing was delivered.
     """
 
     @staticmethod
-    def _function():
+    def _service():
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        return ChatStreamService(Mock(), Mock())
+
+    @staticmethod
+    def _inner(events, seen):
+        async def fake_inner(self, *args, _quota_run=None, **kwargs):
+            try:
+                for event in events:
+                    yield event
+            finally:
+                seen["settled_at_cleanup"] = _quota_run.settled
+
+        return fake_inner
+
+    async def _consume(self, events, stop_after):
+        from src.helpers.streaming_helpers import (
+            generate_chunk_event,  # noqa: F401  (documents the event format the wrapper reads)
+        )
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        seen = {}
+        with patch.object(ChatStreamService, "_stream_agent_response", self._inner(events, seen)):
+            stream = self._service().stream_agent_response(agent_name="a", message="m")
+            received = []
+            async for event in stream:
+                received.append(event)
+                if len(received) == stop_after:
+                    break
+            await stream.aclose()  # what a client disconnect does
+        return seen["settled_at_cleanup"]
+
+    async def test_disconnecting_after_the_first_text_still_counts_the_message(self):
+        from src.helpers.streaming_helpers import generate_chunk_event, generate_start_event, generate_status_event
+
+        events = [
+            await generate_start_event("a", 0.0),
+            await generate_status_event("thinking"),
+            await generate_chunk_event("Hello"),
+            await generate_chunk_event(" world"),
+        ]
+        assert await self._consume(events, stop_after=3) is True
+
+    async def test_disconnecting_before_any_reply_gives_the_unit_back(self):
+        from src.helpers.streaming_helpers import generate_start_event, generate_status_event
+
+        events = [await generate_start_event("a", 0.0), await generate_status_event("thinking")]
+        assert await self._consume(events, stop_after=2) is False
+
+    async def test_an_error_before_any_reply_gives_the_unit_back(self):
+        from src.helpers.streaming_helpers import generate_error_event, generate_start_event
+
+        events = [await generate_start_event("a", 0.0), await generate_error_event("model unavailable")]
+        assert await self._consume(events, stop_after=99) is False
+
+    @pytest.mark.parametrize(
+        "event_type",
+        ["chunk", "done", "chart", "card_set", "diagram", "form", "generated_image", "generated_video",
+         "infographic", "video", "vehicle_map"],
+    )  # fmt: skip
+    async def test_every_kind_of_reply_content_counts(self, event_type):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        assert await self._consume([await generate_sse_event(event_type, {"x": 1})], stop_after=1) is True
+
+    @pytest.mark.parametrize("event_type", ["start", "status", "tool_status", "llm_call", "first_token", "error"])
+    async def test_progress_events_alone_do_not_count(self, event_type):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        assert await self._consume([await generate_sse_event(event_type, {"x": 1})], stop_after=1) is False
+
+    def test_the_inner_stream_queues_the_deduction_once_and_cleans_up_in_one_shielded_step(self):
+        """Reproduces a cancellation in the quota release skipping the run-lease release and the session close."""
         import ast
         import inspect
         import textwrap
 
         from src.services.agents.chat_stream_service import ChatStreamService
 
-        source = inspect.getsource(ChatStreamService.stream_agent_response)
-        return ast.parse(textwrap.dedent(source)).body[0]
+        tree = ast.parse(textwrap.dedent(inspect.getsource(ChatStreamService._stream_agent_response)))
+        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)]
+        assert sum(getattr(c.func, "attr", "") == "queue_credit_deduction" for c in calls) == 1
 
-    @classmethod
-    def _lines(cls, predicate):
-        import ast
-
-        return sorted(node.lineno for node in ast.walk(cls._function()) if predicate(node))
-
-    @staticmethod
-    def _yields_done(node):
-        import ast
-
-        return (
-            isinstance(node, ast.Yield)
-            and isinstance(node.value, ast.Await)
-            and isinstance(node.value.value, ast.Call)
-            and getattr(node.value.value.func, "id", "") == "generate_done_event"
-        )
-
-    def test_the_reply_is_settled_before_the_done_event_is_yielded(self):
-        import ast
-
-        def settles(node):
-            return (
-                isinstance(node, ast.Assign)
-                and any(isinstance(t, ast.Name) and t.id == "quota_settled" for t in node.targets)
-                and isinstance(node.value, ast.Constant)
-                and node.value.value is True
-            )
-
-        done = self._lines(self._yields_done)
-        settled = self._lines(settles)
-        assert done and settled
-        assert min(settled) < min(done), "quota_settled must be set before the first done event is yielded"
-
-    def test_the_deduction_is_queued_once_and_before_the_done_event_is_yielded(self):
-        import ast
-
-        def queues(node):
-            return isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "queue_credit_deduction"
-
-        queued = self._lines(queues)
-        done = self._lines(self._yields_done)
-        assert len(queued) == 1, "the deduction must be queued exactly once"
-        assert queued[0] < min(done)
+        outer_try = next(n for n in tree.body[0].body if isinstance(n, ast.Try) and n.finalbody)
+        shielded = [
+            n
+            for n in ast.walk(ast.Module(body=outer_try.finalbody, type_ignores=[]))
+            if isinstance(n, ast.Call) and getattr(n.func, "attr", "") == "shield"
+        ]
+        assert len(shielded) == 1 and getattr(shielded[0].args[0].func, "id", "") == "_cleanup"

@@ -105,7 +105,7 @@ class TestResolveDestination:
     )  # fmt: skip
     def test_literal_internal_addresses_are_refused(self, host):
         destination, error = hooks.resolve_destination(f"https://{host}/")
-        assert destination is None and "private or internal" in error
+        assert destination is None and error == hooks.DESTINATION_REFUSED
 
     @pytest.mark.parametrize(
         "address", ["127.0.0.1", "10.0.0.5", "169.254.169.254", "::1", "::ffff:7f00:1", "198.18.0.1"]
@@ -113,7 +113,7 @@ class TestResolveDestination:
     def test_a_name_that_resolves_to_an_internal_address_is_refused(self, address):
         with _resolves_to(address):
             destination, error = hooks.resolve_destination("https://innocent.example.com/")
-        assert destination is None and "private or internal" in error
+        assert destination is None and error == hooks.DESTINATION_REFUSED
 
     def test_every_address_must_be_public_not_just_the_first(self):
         with _resolves_to("93.184.216.34", "10.0.0.5"):
@@ -123,7 +123,25 @@ class TestResolveDestination:
     def test_an_unresolvable_name_is_refused(self):
         with patch.object(hooks.socket, "getaddrinfo", side_effect=socket.gaierror("no such host")):
             destination, error = hooks.resolve_destination("https://nope.example.com/")
-        assert destination is None and "could not be resolved" in error
+        assert destination is None and error == hooks.DESTINATION_REFUSED
+
+    def test_internal_and_unresolvable_names_get_the_same_answer(self):
+        """Reproduces the check telling a caller which internal host names exist."""
+        with _resolves_to("10.0.0.5"):
+            internal = hooks.resolve_destination("https://redis.internal/")[1]
+        with patch.object(hooks.socket, "getaddrinfo", side_effect=socket.gaierror("no such host")):
+            missing = hooks.resolve_destination("https://nope.internal/")[1]
+        assert internal == missing == hooks.DESTINATION_REFUSED
+
+    @pytest.mark.parametrize(
+        "address",
+        ["::7f00:1", "::127.0.0.1", "::a9fe:a9fe", "::ffff:0:7f00:1", "::ffff:0:a9fe:a9fe", "2001:db8::1", "3fff::1"],
+    )
+    def test_ipv6_outside_global_unicast_is_refused(self, address):
+        """IPv4-compatible and SIIT forms could be routed to an internal IPv4 address by a translator."""
+        assert not hooks.is_public_address(address)
+        with _resolves_to(address):
+            assert hooks.resolve_destination("https://v6.example.com/")[0] is None
 
     def test_destination_error_is_the_reason_or_none(self):
         with _resolves_to("93.184.216.34"):
@@ -252,6 +270,12 @@ class TestPinnedDelivery:
         receiver = receiver_factory()
         assert hooks.post_pinned(self._destination(receiver), "{}", {}, 5, verify=str(receiver.cert_file)) == 204
 
+    def test_an_ipv6_literal_host_is_bracketed_in_the_host_header(self):
+        with patch.object(hooks.requests, "Session") as session:
+            session.return_value.post.return_value = MagicMock(status_code=200)
+            hooks.post_pinned(hooks.Destination("2606:4700::1", 443, "2606:4700::1", "/x"), "{}", {}, 5)
+        assert session.return_value.post.call_args.kwargs["headers"]["Host"] == "[2606:4700::1]"
+
     def test_an_ipv6_address_is_bracketed_in_the_url(self):
         with patch.object(hooks.requests, "Session") as session:
             session.return_value.post.return_value = MagicMock(status_code=200)
@@ -273,8 +297,10 @@ class TestEmitEvent:
     async def test_event_goes_to_own_and_managers_endpoints_with_customer_identity(self):
         manager_id, customer_id = uuid4(), uuid4()
         customer = MagicMock(id=customer_id, external_ref="cust-7", managed_by_tenant_id=manager_id)
+        manager = MagicMock(id=manager_id, can_manage_tenants=True)
         endpoints = [MagicMock(id=uuid4()), MagicMock(id=uuid4())]
         db = self._db(customer, endpoints)
+        db.get = AsyncMock(side_effect=lambda model, key: customer if key == customer_id else manager)
         with patch.object(hooks, "deliver_to") as deliver:
             queued = await hooks.emit_event(db, customer_id, hooks.EVENT_USAGE_THRESHOLD, {"pool": "p"})
 
@@ -285,6 +311,17 @@ class TestEmitEvent:
         assert event["data"] == {"pool": "p"}
         owners = next(v for v in db.execute.call_args[0][0].compile().params.values() if isinstance(v, list))
         assert set(owners) == {customer_id, manager_id}
+
+    async def test_a_manager_whose_management_was_revoked_stops_receiving_customer_events(self):
+        manager_id, customer_id = uuid4(), uuid4()
+        customer = MagicMock(id=customer_id, external_ref="c", managed_by_tenant_id=manager_id)
+        revoked = MagicMock(id=manager_id, can_manage_tenants=False)
+        db = self._db(customer, [])
+        db.get = AsyncMock(side_effect=lambda model, key: customer if key == customer_id else revoked)
+        with patch.object(hooks, "deliver_to"):
+            await hooks.emit_event(db, customer_id, hooks.EVENT_USAGE_THRESHOLD, {})
+        owners = next(v for v in db.execute.call_args[0][0].compile().params.values() if isinstance(v, list))
+        assert owners == [customer_id]
 
     async def test_no_endpoints_queues_nothing(self):
         db = self._db(MagicMock(id=uuid4(), external_ref=None, managed_by_tenant_id=None), [])

@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.subscription_plan import PlanTier, SubscriptionPlan
 
+MAX_INT32 = 2**31 - 1  # counters and limits are stored in 32-bit integer columns
 _POOL_KEY = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 _OPTIONAL_COLUMNS = (
@@ -62,8 +63,8 @@ def validate_quota_pools(pools: Any) -> list[dict]:
         if key in seen:
             raise PlanConfigError(f"duplicate pool key {key!r}")
         limit = pool.get("limit")
-        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
-            raise PlanConfigError(f"pool {key!r}: limit must be a whole number of 0 or more")
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0 or limit > MAX_INT32:
+            raise PlanConfigError(f"pool {key!r}: limit must be a whole number from 0 to {MAX_INT32}")
         label = pool.get("label") or key
         if not isinstance(label, str):
             raise PlanConfigError(f"pool {key!r}: label must be text")
@@ -97,12 +98,16 @@ def _parse_plan(raw: dict) -> dict:
             raise PlanConfigError(f"plan {name!r}: tier must be one of {[t.name for t in PlanTier]}") from None
     if "price_monthly" in raw:
         values["price_monthly"] = _number(name, "price_monthly", raw["price_monthly"], Decimal)
+        if values["price_monthly"] < 0:
+            raise PlanConfigError(f"plan {name!r}: price_monthly cannot be negative")
     if "price_yearly" in raw:
         values["price_yearly"] = (
             None if raw["price_yearly"] is None else _number(name, "price_yearly", raw["price_yearly"], Decimal)
         )
     if "credits_monthly" in raw:
         values["credits_monthly"] = _number(name, "credits_monthly", raw["credits_monthly"], int)
+        if not 0 <= values["credits_monthly"] <= MAX_INT32:
+            raise PlanConfigError(f"plan {name!r}: credits_monthly must be from 0 to {MAX_INT32}")
     if "credits_rollover" in raw:
         values["credits_rollover"] = bool(raw["credits_rollover"])
     if "is_active" in raw:
@@ -112,6 +117,13 @@ def _parse_plan(raw: dict) -> dict:
     for column in _OPTIONAL_COLUMNS:
         if column in raw:
             values[column] = raw[column]
+    features = values.get("features")
+    if features is not None and not isinstance(features, dict):
+        raise PlanConfigError(f"plan {name!r}: features must be an object")
+    if features and "max_rollover_credits" in features:
+        cap = features["max_rollover_credits"]
+        if isinstance(cap, bool) or not isinstance(cap, int) or not 0 <= cap <= MAX_INT32:
+            raise PlanConfigError(f"plan {name!r}: features.max_rollover_credits must be a whole number of 0 or more")
     return {"name": name, "values": values}
 
 
@@ -137,6 +149,17 @@ async def import_plans(db: AsyncSession, plans: list[dict]) -> dict[str, str]:
         existing[item["name"]] = plan
         if plan is None and "price_monthly" not in item["values"]:
             raise PlanConfigError(f"plan {item['name']!r} is new, so price_monthly is required")
+
+    # The Free plan is looked up as the single plan with tier FREE, so there can only be one
+    free_in_file = [item["name"] for item in parsed if item["values"].get("tier") == PlanTier.FREE]
+    if free_in_file:
+        other_free = await db.scalar(
+            select(SubscriptionPlan.name).where(
+                SubscriptionPlan.tier == PlanTier.FREE, SubscriptionPlan.name.not_in(free_in_file)
+            )
+        )
+        if len(free_in_file) > 1 or other_free:
+            raise PlanConfigError("only one plan can have tier FREE")
 
     outcome: dict[str, str] = {}
     for item in parsed:

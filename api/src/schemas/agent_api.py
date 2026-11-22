@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Request Schemas
 
@@ -31,7 +31,8 @@ class ChatRequest(BaseModel):
     external_user_name: str | None = Field(None, max_length=255)
     external_user_email: str | None = Field(None, max_length=255)
     attachments: list[dict[str, Any]] | None = Field(
-        None, description="Objects returned by the attachments endpoint for this conversation (max 5)"
+        None,
+        description='Files uploaded to this conversation, as [{"token": "..."}] from the attachments endpoint (max 5)',
     )
 
 
@@ -51,6 +52,14 @@ class CreateApiKeyRequest(BaseModel):
     allowed_origins: list[str] | None = Field(None, description="List of allowed CORS origins")
     expires_at: datetime | None = Field(None, description="Optional expiration date for the key")
 
+    @field_validator("permissions")
+    @classmethod
+    def _check_permissions(cls, value):
+        # Validated here so both the create and the update routes refuse operator-only or malformed permissions
+        from src.services.agent_api.api_key_service import validate_requested_permissions
+
+        return value if value is None else validate_requested_permissions(value)
+
 
 class UpdateApiKeyRequest(BaseModel):
     """Request schema for updating an API key."""
@@ -64,6 +73,14 @@ class UpdateApiKeyRequest(BaseModel):
     allowed_ips: list[str] | None = Field(None, description="Updated list of allowed IP addresses")
     allowed_origins: list[str] | None = Field(None, description="Updated list of allowed CORS origins")
     expires_at: datetime | None = Field(None, description="Updated expiration date")
+
+    @field_validator("permissions")
+    @classmethod
+    def _check_permissions(cls, value):
+        # Validated here so both the create and the update routes refuse operator-only or malformed permissions
+        from src.services.agent_api.api_key_service import validate_requested_permissions
+
+        return value if value is None else validate_requested_permissions(value)
 
 
 # Response Schemas

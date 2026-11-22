@@ -462,6 +462,17 @@ def _find_missing_deductions(db) -> list:
                 SELECT 1 FROM credit_transactions ct
                 WHERE ct.transaction_metadata::jsonb->>'message_id' = m.id::text
             )
+            -- Plans that meter messages per pool never write a credit transaction for a message (the unit is
+            -- counted when the reply starts), so their messages are not missing deductions. Re-queuing them
+            -- would count each message a second time under a different key.
+            AND NOT EXISTS (
+                SELECT 1 FROM tenant_subscriptions ts
+                JOIN subscription_plans sp ON sp.id = ts.plan_id
+                WHERE ts.tenant_id = a.tenant_id
+                AND ts.status IN ('ACTIVE', 'TRIAL')
+                AND jsonb_typeof(sp.quota_pools) = 'array'
+                AND jsonb_array_length(sp.quota_pools) > 0
+            )
             LIMIT 100
         """)
 

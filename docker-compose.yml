@@ -572,7 +572,7 @@ services:
       context: ./api
       dockerfile: Dockerfile.dev
     container_name: synkora-celery-worker-notifications
-    command: celery -A src.celery_app worker --loglevel=info --concurrency=8 -Q email,notifications
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=8 -Q email,notifications,webhooks
     env_file:
       - ./api/.env
     environment:

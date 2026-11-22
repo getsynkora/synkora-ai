@@ -72,6 +72,7 @@ class ReserveResult(StrEnum):
     DUPLICATE = "duplicate"  # this key already holds a unit
     EXHAUSTED = "exhausted"  # pool is full; nothing was taken
     UNASSIGNED = "unassigned"  # plan has pools but none matches this agent; nothing was taken
+    INACTIVE = "inactive"  # the tenant's subscription is suspended, cancelled or expired; nothing was taken
 
 
 class QuotaService:
@@ -93,6 +94,16 @@ class QuotaService:
         )
         row = result.first()
         return (row[0], row[1]) if row else None
+
+    async def _has_inactive_subscription(self, tenant_id: uuid.UUID) -> bool:
+        """True when the tenant's most recent subscription is suspended, cancelled or expired."""
+        status = await self.db.scalar(
+            select(TenantSubscription.status)
+            .where(TenantSubscription.tenant_id == tenant_id)
+            .order_by(TenantSubscription.created_at.desc())
+            .limit(1)
+        )
+        return status in (SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED, SubscriptionStatus.EXPIRED)
 
     @staticmethod
     def _period(subscription: TenantSubscription) -> tuple[datetime, datetime]:
@@ -307,7 +318,13 @@ class QuotaService:
         """
         active = await self._active_plan(tenant_id)
         if not active:
-            return ReserveResult.NOT_METERED
+            # Every chat path reserves here, including bots, widgets and the scheduler that run no pre-check, so a
+            # suspended, cancelled or expired subscription is refused here rather than served on credits.
+            return (
+                ReserveResult.INACTIVE
+                if await self._has_inactive_subscription(tenant_id)
+                else ReserveResult.NOT_METERED
+            )
         subscription, plan = active
         pool = self._find_pool(plan.quota_pools, pool_key)
         if pool is None:

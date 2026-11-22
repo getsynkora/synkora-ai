@@ -131,3 +131,67 @@ class TestKeyResponses:
                 json={"agent_id": str(uuid4()), "name": "x", "permissions": ["tenants:manage"]},
             )
         assert response.status_code == 400
+
+
+class TestAuditTrail:
+    def _client(self):
+        return _client(MagicMock(id=MANAGER, can_manage_tenants=True))
+
+    def test_creating_a_customer_key_is_audited_with_who_did_it(self):
+        client = self._client()
+        key = MagicMock(
+            id=uuid4(), agent_id=uuid4(), key_prefix="sk_live_abc", permissions=["chat"], is_active=True,
+            created_at=datetime(2026, 11, 1, tzinfo=UTC),
+        )  # fmt: skip
+        key.key_name = "Frontend"
+        customer = MagicMock(id=uuid4())
+        with (
+            _authenticated([]),
+            patch.object(prov.TenantProvisioningService, "get_managed", AsyncMock(return_value=customer)),
+            patch.object(prov.TenantProvisioningService, "create_api_key", AsyncMock(return_value=(key, "sk_full"))),
+            patch.object(prov, "audit_api_action") as audit,
+        ):
+            client.post(f"/api/v1/public/tenants/{customer.id}/api-keys", json={"agent_id": str(uuid4()), "name": "F"})
+
+        actor_key, _request, action, resource_type = audit.call_args.args[:4]
+        assert actor_key.tenant_id == MANAGER
+        assert (action, resource_type) == ("managed_tenant.api_key_created", "managed_tenant")
+        details = audit.call_args.kwargs["details"]
+        assert details["customer_tenant_id"] == str(customer.id) and details["permissions"] == ["chat"]
+        assert "sk_full" not in str(audit.call_args)  # the key itself is never recorded
+
+    def test_setting_an_llm_key_is_audited_without_the_key(self):
+        client = self._client()
+        with (
+            _authenticated([]),
+            patch.object(prov.TenantProvisioningService, "get_managed", AsyncMock(return_value=MagicMock(id=uuid4()))),
+            patch.object(prov.TenantProvisioningService, "set_llm_key", AsyncMock()),
+            patch.object(prov, "audit_api_action") as audit,
+        ):
+            response = client.put(
+                f"/api/v1/public/tenants/{uuid4()}/agents/{uuid4()}/llm-key", json={"api_key": "sk-provider-SECRET"}
+            )
+        assert response.status_code == 204
+        assert audit.call_args.args[2] == "managed_tenant.llm_key_set"
+        assert "SECRET" not in str(audit.call_args)
+
+    def test_a_refused_action_is_not_audited_as_done(self):
+        client = self._client()
+        with (
+            _authenticated([]),
+            patch.object(
+                prov.TenantProvisioningService,
+                "get_managed",
+                AsyncMock(side_effect=prov.ProvisioningError("Tenant not found", 404)),
+            ),
+            patch.object(prov, "audit_api_action") as audit,
+        ):
+            client.put(f"/api/v1/public/tenants/{uuid4()}/subscription", json={"status": "ACTIVE"})
+        audit.assert_not_called()
+
+
+def test_an_audit_failure_never_breaks_the_action():
+    from src.services.activity import api_audit
+
+    with patch.object(api_audit.ActivityLogService, "queue_activity", side_effect=RuntimeError("no loop")):
+        api_audit.audit_api_action(MagicMock(), None, "x.done", "thing")  # does not raise

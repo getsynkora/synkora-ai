@@ -144,3 +144,44 @@ class TestImportPlans:
     async def test_duplicate_names_rejected(self, db):
         with pytest.raises(PlanConfigError, match="unique"):
             await import_plans(db, [{"name": "A", "price_monthly": 1}, {"name": "A", "price_monthly": 2}])
+
+
+class TestPlanValueLimits:
+    @pytest.fixture
+    def db(self):
+        session = AsyncMock(spec=AsyncSession)
+        session.add = MagicMock()
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = None
+        session.execute.return_value = result
+        session.scalar.return_value = None
+        return session
+
+    @pytest.mark.parametrize(
+        "extra",
+        [
+            {"credits_monthly": -5},
+            {"credits_monthly": 2**31},
+            {"price_monthly": -1},
+            {"features": {"max_rollover_credits": -1}},
+            {"features": {"max_rollover_credits": "lots"}},
+            {"features": {"max_rollover_credits": True}},
+            {"features": "nope"},
+            {"quota_pools": [{"key": "a", "limit": 2**31}]},
+        ],
+    )
+    async def test_values_that_would_break_billing_are_refused(self, db, extra):
+        with pytest.raises(PlanConfigError):
+            await import_plans(db, [{"name": "P", "price_monthly": 1, **extra}])
+        db.commit.assert_not_called()
+
+    async def test_only_one_free_plan(self, db):
+        db.scalar.return_value = "Existing Free"
+        with pytest.raises(PlanConfigError, match="tier FREE"):
+            await import_plans(db, [{"name": "Another Free", "price_monthly": 0, "tier": "FREE"}])
+        db.scalar.return_value = None
+        with pytest.raises(PlanConfigError, match="tier FREE"):
+            await import_plans(
+                db,
+                [{"name": "A", "price_monthly": 0, "tier": "FREE"}, {"name": "B", "price_monthly": 0, "tier": "FREE"}],
+            )

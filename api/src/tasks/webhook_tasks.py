@@ -7,7 +7,7 @@ from uuid import UUID
 
 import requests
 from celery import shared_task
-from celery.exceptions import MaxRetriesExceededError
+from celery.exceptions import MaxRetriesExceededError, SoftTimeLimitExceeded
 
 from src.core.database import get_db
 from src.models.webhook_endpoint import WebhookEndpoint
@@ -16,7 +16,12 @@ from src.services.outbound_webhooks import MAX_CONSECUTIVE_FAILURES, post_pinned
 
 logger = logging.getLogger(__name__)
 
-DELIVERY_TIMEOUT_SECONDS = 10
+# A receiver gets 3 s to accept the connection and 5 s between bytes, and the whole attempt is cut off after 12 s
+# (soft_time_limit). An answer that takes longer than SLOW_DELIVERY_SECONDS counts as a failure, so a receiver that
+# trickles its response cannot keep a worker busy and stay switched on.
+CONNECT_TIMEOUT_SECONDS = 3
+READ_TIMEOUT_SECONDS = 5
+SLOW_DELIVERY_SECONDS = 8
 
 
 def _record_result(db, endpoint: WebhookEndpoint, ok: bool) -> None:
@@ -35,8 +40,8 @@ def _record_result(db, endpoint: WebhookEndpoint, ok: bool) -> None:
     bind=True,
     max_retries=5,
     acks_late=True,
-    time_limit=30,
-    soft_time_limit=20,
+    time_limit=15,
+    soft_time_limit=12,
 )
 def deliver_webhook_event(self, endpoint_id: str, delivery_id: str, event_type: str, payload: dict):
     """POST one signed event to one endpoint, retrying with backoff when it does not answer 2xx."""
@@ -64,11 +69,16 @@ def deliver_webhook_event(self, endpoint_id: str, delivery_id: str, event_type: 
             "X-Synkora-Delivery": delivery_id,
             "X-Synkora-Signature": f"t={timestamp},v1={signature}",
         }
+        started = time.monotonic()
         try:
-            status_code = post_pinned(destination, body, headers, timeout=DELIVERY_TIMEOUT_SECONDS)
-            ok = 200 <= status_code < 300
-        except requests.RequestException as err:
-            logger.info("Webhook %s to %s failed: %s", delivery_id, endpoint.id, err)
+            status_code = post_pinned(
+                destination, body, headers, timeout=(CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS)
+            )
+            ok = 200 <= status_code < 300 and time.monotonic() - started <= SLOW_DELIVERY_SECONDS
+        except (requests.RequestException, SoftTimeLimitExceeded) as err:
+            # Only the error type is logged: the message can contain the endpoint's path and query, which often
+            # carry a secret token.
+            logger.info("Webhook %s to %s failed: %s", delivery_id, endpoint.id, type(err).__name__)
             ok = False
 
         if ok:

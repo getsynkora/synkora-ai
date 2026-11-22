@@ -8,7 +8,7 @@ mechanism serves any product or industry.
 """
 
 import sqlalchemy as sa
-from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 
 from .base import BaseModel
@@ -43,6 +43,7 @@ class QuotaUsageEvent(BaseModel):
     """One metered unit, keyed for idempotency so retried tasks never double count."""
 
     __tablename__ = "quota_usage_events"
+    __table_args__ = (Index("ix_quota_usage_events_tenant_created", "tenant_id", "created_at"),)
 
     idempotency_key = Column(String(255), nullable=False, unique=True, comment="e.g. msg_<message_id>")
     tenant_id = Column(
