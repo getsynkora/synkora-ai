@@ -9,8 +9,9 @@ Each agent draws from one pool (``Agent.quota_pool``, default ``"default"``). Us
 counted per billing period, so a new period starts every pool at zero with no reset job.
 Pool keys are free-form slugs; nothing here is specific to an industry.
 
-If the tenant's plan has no pools, or has no pool matching the agent, the service reports
-"not metered" and callers fall back to the shared credit balance.
+If the tenant's plan has no pools, the service reports "not metered" and callers fall back to the
+shared credit balance. If the plan has pools but none matches the agent, the agent is "unassigned":
+that is a configuration problem, reported as such instead of silently falling back to credits.
 """
 
 import logging
@@ -60,6 +61,7 @@ class ConsumeResult(StrEnum):
     CONSUMED = "consumed"
     DUPLICATE = "duplicate"  # idempotency key already counted
     OVER_LIMIT = "over_limit"  # counted, but pool is now past its limit
+    UNASSIGNED = "unassigned"  # plan has pools but none matches this agent; nothing was counted
 
 
 class ReserveResult(StrEnum):
@@ -69,6 +71,7 @@ class ReserveResult(StrEnum):
     RESERVED = "reserved"  # unit taken; release it if the work does not complete
     DUPLICATE = "duplicate"  # this key already holds a unit
     EXHAUSTED = "exhausted"  # pool is full; nothing was taken
+    UNASSIGNED = "unassigned"  # plan has pools but none matches this agent; nothing was taken
 
 
 class QuotaService:
@@ -112,6 +115,29 @@ class QuotaService:
                 return pool
         return None
 
+    def unassigned_pools(self, plan: SubscriptionPlan, pool_key: str | None) -> list[str] | None:
+        """The plan's pool keys when it has pools but none matches ``pool_key``; otherwise None."""
+        pools = plan.quota_pools or []
+        if pools and self._find_pool(pools, pool_key) is None:
+            return [p["key"] for p in pools]
+        return None
+
+    async def unassigned_pool_keys(self, tenant_id: uuid.UUID, pool_key: str | None) -> list[str] | None:
+        """For the pre-check: the pools the tenant's plan offers if this agent matches none of them."""
+        active = await self._active_plan(tenant_id)
+        return self.unassigned_pools(active[1], pool_key) if active else None
+
+    @staticmethod
+    def _status(pool: dict, used: int, period: tuple[datetime, datetime]) -> PoolStatus:
+        return PoolStatus(
+            key=pool["key"],
+            label=pool.get("label") or pool["key"],
+            limit=int(pool["limit"]),
+            used=int(used or 0),
+            period_start=period[0],
+            period_end=period[1],
+        )
+
     async def get_pool_status(self, tenant_id: uuid.UUID, pool_key: str | None) -> PoolStatus | None:
         """Return the pool's usage this period, or None if the plan does not meter this pool."""
         active = await self._active_plan(tenant_id)
@@ -122,55 +148,78 @@ class QuotaService:
         if pool is None:
             return None
 
-        period_start, period_end = self._period(subscription)
+        period = self._period(subscription)
         used = await self.db.scalar(
             select(QuotaUsage.used).where(
                 QuotaUsage.tenant_id == tenant_id,
                 QuotaUsage.pool_key == pool["key"],
-                QuotaUsage.period_start == period_start,
+                QuotaUsage.period_start == period[0],
             )
         )
-        return PoolStatus(
-            key=pool["key"],
-            label=pool.get("label") or pool["key"],
-            limit=int(pool["limit"]),
-            used=int(used or 0),
-            period_start=period_start,
-            period_end=period_end,
-        )
+        return self._status(pool, used, period)
 
     async def list_pool_statuses(self, tenant_id: uuid.UUID) -> list[PoolStatus]:
         """All pools on the tenant's plan with this period's usage (empty if the plan has none)."""
         active = await self._active_plan(tenant_id)
         if not active:
             return []
-        _, plan = active
-        statuses = []
-        for pool in plan.quota_pools or []:
-            status = await self.get_pool_status(tenant_id, pool["key"])
-            if status:
-                statuses.append(status)
-        return statuses
+        subscription, plan = active
+        pools = plan.quota_pools or []
+        if not pools:
+            return []
 
-    async def _notify_thresholds(self, tenant_id: uuid.UUID, pool: dict, before: int, after: int) -> None:
-        """Queue a ``usage.threshold`` event for each of 80% and 100% that this change crossed."""
+        period = self._period(subscription)
+        rows = await self.db.execute(
+            select(QuotaUsage.pool_key, QuotaUsage.used).where(
+                QuotaUsage.tenant_id == tenant_id, QuotaUsage.period_start == period[0]
+            )
+        )
+        used_by_pool = {row[0]: row[1] for row in rows.all()}
+        return [self._status(pool, used_by_pool.get(pool["key"], 0), period) for pool in pools]
+
+    async def _notify_thresholds(self, tenant_id: uuid.UUID, pool: dict, period_start: datetime, used: int) -> None:
+        """
+        Queue a ``usage.threshold`` event the first time each of 80% and 100% is reached in a period.
+
+        The highest level already announced is stored on the counter row, so retries, released units and
+        overshoot never repeat an alert. Marking is a conditional UPDATE, so concurrent messages announce once.
+        """
         limit = int(pool["limit"])
         if limit <= 0:
             return
+        announced: list[int] = []
         for percent in USAGE_THRESHOLDS:
-            if before * 100 < percent * limit <= after * 100:
-                await emit_event(
-                    self.db,
-                    tenant_id,
-                    EVENT_USAGE_THRESHOLD,
-                    {
-                        "pool": pool["key"],
-                        "label": pool.get("label") or pool["key"],
-                        "threshold_percent": percent,
-                        "used": after,
-                        "limit": limit,
-                    },
+            if used * 100 < percent * limit:
+                continue
+            marked = await self.db.execute(
+                update(QuotaUsage)
+                .where(
+                    QuotaUsage.tenant_id == tenant_id,
+                    QuotaUsage.pool_key == pool["key"],
+                    QuotaUsage.period_start == period_start,
+                    QuotaUsage.notified_percent < percent,
                 )
+                .values(notified_percent=percent)
+                .returning(QuotaUsage.id)
+            )
+            if marked.first() is not None:
+                announced.append(percent)
+        if not announced:
+            return
+        await self.db.commit()
+        for percent in announced:
+            await emit_event(
+                self.db,
+                tenant_id,
+                EVENT_USAGE_THRESHOLD,
+                {
+                    "pool": pool["key"],
+                    "label": pool.get("label") or pool["key"],
+                    "threshold_percent": percent,
+                    "used": used,
+                    "limit": limit,
+                },
+            )
 
     async def consume(
         self,
@@ -192,7 +241,7 @@ class QuotaService:
         subscription, plan = active
         pool = self._find_pool(plan.quota_pools, pool_key)
         if pool is None:
-            return ConsumeResult.NOT_METERED
+            return ConsumeResult.UNASSIGNED if plan.quota_pools else ConsumeResult.NOT_METERED
 
         period_start, _ = self._period(subscription)
         key = pool["key"]
@@ -233,7 +282,7 @@ class QuotaService:
         counter.used = (counter.used or 0) + amount
         used_now = counter.used
         await self.db.commit()
-        await self._notify_thresholds(tenant_id, pool, used_now - amount, used_now)
+        await self._notify_thresholds(tenant_id, pool, period_start, used_now)
 
         limit = int(pool["limit"])
         if used_now > limit:
@@ -262,7 +311,7 @@ class QuotaService:
         subscription, plan = active
         pool = self._find_pool(plan.quota_pools, pool_key)
         if pool is None:
-            return ReserveResult.NOT_METERED
+            return ReserveResult.UNASSIGNED if plan.quota_pools else ReserveResult.NOT_METERED
 
         period_start, _ = self._period(subscription)
         key = pool["key"]
@@ -307,7 +356,7 @@ class QuotaService:
             return ReserveResult.EXHAUSTED
 
         await self.db.commit()
-        await self._notify_thresholds(tenant_id, pool, used_now - amount, used_now)
+        await self._notify_thresholds(tenant_id, pool, period_start, used_now)
         return ReserveResult.RESERVED
 
     async def release(self, tenant_id: uuid.UUID, idempotency_key: str) -> bool:

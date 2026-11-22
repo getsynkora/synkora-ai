@@ -352,7 +352,7 @@ class ChatStreamService:
                         idempotency_key=_quota_key,
                         agent_id=db_agent.id,
                     )
-                    if _reserve == ReserveResult.EXHAUSTED:
+                    if _reserve in (ReserveResult.EXHAUSTED, ReserveResult.UNASSIGNED):
                         from src.services.billing.chat_billing_service import ChatBillingService
 
                         _quota_check = await ChatBillingService(_quota_db).validate_quota(
@@ -369,7 +369,9 @@ class ChatStreamService:
                             )
                         yield await generate_error_event(
                             _quota_msg,
-                            error_code="QUOTA_EXCEEDED",
+                            error_code=_quota_check.error.error_code.value
+                            if _quota_check and _quota_check.error
+                            else "QUOTA_EXCEEDED",
                             details=_quota_check.error.details if _quota_check and _quota_check.error else {},
                         )
                         return

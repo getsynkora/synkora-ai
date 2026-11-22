@@ -1,4 +1,4 @@
-"""Agent id on usage events (per-agent usage history) and outbound webhook endpoints."""
+"""Agent id on usage events (per-agent usage history), announced-threshold state and outbound webhook endpoints."""
 
 import sqlalchemy as sa
 from alembic import op
@@ -13,6 +13,10 @@ depends_on = None
 def upgrade():
     bind = op.get_bind()
     inspector = sa.inspect(bind)
+
+    usage_columns = {c["name"] for c in inspector.get_columns("quota_usage")}
+    if "notified_percent" not in usage_columns:
+        op.add_column("quota_usage", sa.Column("notified_percent", sa.Integer(), nullable=False, server_default="0"))
 
     event_columns = {c["name"] for c in inspector.get_columns("quota_usage_events")}
     if "agent_id" not in event_columns:
@@ -44,6 +48,7 @@ def upgrade():
 
 
 def downgrade():
+    op.drop_column("quota_usage", "notified_percent")
     op.drop_table("webhook_endpoints")
     op.drop_index("ix_quota_usage_events_tenant_created", table_name="quota_usage_events")
     op.drop_constraint("fk_quota_usage_events_agent_id", "quota_usage_events", type_="foreignkey")

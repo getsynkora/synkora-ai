@@ -4,6 +4,8 @@ Public Agent API Controller - External API for agent interactions with Advanced 
 CRITICAL: All chat interactions are protected with prompt injection scanning.
 """
 
+import hashlib
+import hmac
 import json
 import logging
 import uuid as uuid_lib
@@ -16,6 +18,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.core.database import get_async_db
 from src.middleware.agent_api_auth import require_permission
 from src.models.agent import Agent
@@ -120,15 +123,29 @@ async def _precheck_billing(db: AsyncSession, api_key: AgentApiKey, agent: Agent
         )
 
 
+def _attachment_signature(attachment: dict, tenant_id: UUID, conversation_id: UUID) -> str:
+    """Server-side proof that this exact file and extracted text were produced by an upload to this conversation."""
+    material = "|".join(
+        [
+            str(tenant_id),
+            str(conversation_id),
+            str(attachment.get("file_id")),
+            str(attachment.get("file_url")),
+            str(attachment.get("file_name")),
+            hashlib.sha256(str(attachment.get("extracted_text") or "").encode()).hexdigest(),
+        ]
+    )
+    return hmac.new(settings.secret_key.encode(), material.encode(), hashlib.sha256).hexdigest()
+
+
 def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conversation_id: UUID | None):
-    """Accept only files uploaded to this conversation through the attachments endpoint."""
+    """Accept only files returned by the attachments endpoint for this conversation, unchanged."""
     if not attachments:
         return None
     if conversation_id is None:
         raise HTTPException(status_code=400, detail="Attachments need a conversation_id: create a conversation first")
     if len(attachments) > MAX_ATTACHMENTS:
         raise HTTPException(status_code=400, detail=f"At most {MAX_ATTACHMENTS} attachments per message")
-    needle = f"tenants/{tenant_id}/chat-attachments/{conversation_id}/"
     keep = (
         "file_id",
         "file_name",
@@ -141,8 +158,12 @@ def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conve
     )
     clean = []
     for attachment in attachments:
-        if needle not in str(attachment.get("file_url") or ""):
-            raise HTTPException(status_code=400, detail="Attachment does not belong to this conversation")
+        given = str(attachment.get("signature") or "")
+        expected = _attachment_signature(attachment, tenant_id, conversation_id)
+        if not hmac.compare_digest(given, expected):
+            raise HTTPException(
+                status_code=400, detail="Attachment was not uploaded to this conversation or was changed"
+            )
         item = {key: attachment.get(key) for key in keep}
         item["extracted_text"] = str(attachment.get("extracted_text") or "")[:MAX_ATTACHMENT_TEXT]
         clean.append(item)
@@ -350,7 +371,9 @@ async def chat_with_agent(
             elif kind == "error":
                 code = event.get("error_code") or event.get("error_type") or "AGENT_ERROR"
                 raise HTTPException(
-                    status_code=402 if code in ("QUOTA_EXCEEDED", "INSUFFICIENT_CREDITS") else 502,
+                    status_code=402
+                    if code in ("QUOTA_EXCEEDED", "QUOTA_NOT_ASSIGNED", "INSUFFICIENT_CREDITS")
+                    else 502,
                     detail={
                         "error_code": code,
                         "message": event.get("error") or event.get("content") or "The agent could not reply",
@@ -648,7 +671,8 @@ async def upload_attachment(
         tenant_id=api_key.tenant_id,
         conversation_id=conversation.id,
     )
-    return {"attachment": attachment}
+    signature = _attachment_signature(attachment, api_key.tenant_id, conversation.id)
+    return {"attachment": {**attachment, "signature": signature}}
 
 
 @router.put("/agents/{agent_id}/conversations/{conversation_id}/messages/{message_id}/feedback")

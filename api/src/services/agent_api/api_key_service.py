@@ -59,6 +59,10 @@ def _get_redis_client():
         raise RuntimeError("API rate limiting service temporarily unavailable. Please try again later.")
 
 
+# Scopes that only ever grant their own exact permissions (see check_permission)
+SCOPED_PERMISSION_PREFIXES = frozenset({"billing", "knowledge", "webhooks", "tenants", "handoff"})
+
+
 class AgentApiKeyService:
     """Service for managing agent API keys."""
 
@@ -366,8 +370,13 @@ class AgentApiKeyService:
 
         # Namespaced match: "scope:verb" satisfies "verb"
         # e.g. "agent:chat" satisfies required "chat"
+        # Permissions with their own scope (billing:read, knowledge:write, ...) never satisfy the plain
+        # verb: a key meant only to show usage must not be able to read or delete conversations.
         suffix = f":{required_permission}"
-        return any(perm.endswith(suffix) for perm in api_key.permissions)
+        return any(
+            perm.endswith(suffix) and perm.split(":", 1)[0] not in SCOPED_PERMISSION_PREFIXES
+            for perm in api_key.permissions
+        )
 
     @staticmethod
     def check_rate_limit(api_key: AgentApiKey) -> tuple[bool, str | None]:

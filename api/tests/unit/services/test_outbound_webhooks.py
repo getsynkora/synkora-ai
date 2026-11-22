@@ -94,28 +94,79 @@ class TestSubscriptionEventData:
         }
 
 
+class _Counter:
+    """Stands in for the counter row: remembers the highest threshold already announced."""
+
+    def __init__(self, notified=0):
+        self.notified = notified
+
+    async def execute(self, statement):
+        percent = statement.compile().params["notified_percent"]
+        result = MagicMock()
+        if self.notified < percent:
+            self.notified = percent
+            result.first.return_value = (uuid4(),)
+        else:
+            result.first.return_value = None
+        return result
+
+
 class TestThresholds:
-    async def _crossed(self, before, after, limit):
-        service = QuotaService(AsyncMock())
+    START = datetime(2026, 11, 1, tzinfo=UTC)
+
+    def _service(self, counter=None):
+        db = AsyncMock()
+        db.execute = (counter or _Counter()).execute
+        return QuotaService(db)
+
+    async def _announced(self, service, used, limit):
         with patch("src.services.billing.quota_service.emit_event", new=AsyncMock()) as emit:
-            await service._notify_thresholds(uuid4(), {"key": "p", "label": "P", "limit": limit}, before, after)
+            await service._notify_thresholds(uuid4(), {"key": "p", "label": "P", "limit": limit}, self.START, used)
         return [call.args[3]["threshold_percent"] for call in emit.await_args_list]
 
     @pytest.mark.parametrize(
-        ("before", "after", "limit", "expected"),
+        ("used", "limit", "expected"),
         [
-            (3, 4, 5, [80]),  # 80% of 5 is 4
-            (4, 5, 5, [100]),  # already past 80%
-            (7, 8, 10, [80]),
-            (8, 9, 10, []),
-            (0, 1, 10, []),
-            (0, 1, 1, [80, 100]),  # a single message crosses both
-            (9, 10, 10, [100]),
-            (10, 11, 10, []),  # overshoot does not repeat the alert
+            (3, 5, []),
+            (4, 5, [80]),
+            (5, 5, [80, 100]),
+            (7, 10, []),
+            (8, 10, [80]),
+            (10, 10, [80, 100]),
+            (1, 1, [80, 100]),
         ],
     )
-    async def test_alerts_once_when_each_level_is_crossed(self, before, after, limit, expected):
-        assert await self._crossed(before, after, limit) == expected
+    async def test_each_level_is_announced_once_it_is_reached(self, used, limit, expected):
+        assert await self._announced(self._service(), used, limit) == expected
+
+    async def test_a_level_is_never_announced_twice_in_a_period(self):
+        """Reproduces duplicate 80% alerts when a unit is released and the pool crosses 80% again."""
+        service = self._service()
+        sequence = [(4, [80]), (3, []), (4, []), (4, []), (5, [100]), (4, []), (5, []), (6, [])]
+        for used, expected in sequence:
+            assert await self._announced(service, used, 5) == expected, used
+
+    async def test_already_announced_levels_are_remembered_across_calls(self):
+        service = self._service(_Counter(notified=80))
+        assert await self._announced(service, 4, 5) == []
+        assert await self._announced(service, 5, 5) == [100]
+
+    async def test_nothing_is_queried_below_the_first_level(self):
+        service = self._service()
+        service.db.execute = AsyncMock()
+        await self._announced(service, 1, 10)
+        service.db.execute.assert_not_called()
+        service.db.commit.assert_not_called()
+
+    async def test_the_new_level_is_saved_before_the_event_is_queued(self):
+        service = self._service()
+        order = []
+        service.db.commit = AsyncMock(side_effect=lambda: order.append("commit"))
+        with patch(
+            "src.services.billing.quota_service.emit_event", new=AsyncMock(side_effect=lambda *a: order.append("emit"))
+        ):
+            await service._notify_thresholds(uuid4(), {"key": "p", "limit": 5}, self.START, 4)
+        assert order == ["commit", "emit"]
 
     async def test_a_pool_with_no_allowance_never_alerts(self):
-        assert await self._crossed(0, 1, 0) == []
+        assert await self._announced(self._service(), 1, 0) == []

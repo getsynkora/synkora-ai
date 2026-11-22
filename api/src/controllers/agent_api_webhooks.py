@@ -10,6 +10,7 @@ Each delivery is signed: ``X-Synkora-Signature: t=<seconds>,v1=<hex HMAC-SHA256 
 using the secret returned when the endpoint was created.
 """
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime
@@ -90,7 +91,7 @@ async def create_webhook(
         raise HTTPException(
             status_code=400, detail=f"Unknown events {unknown}. Choose from {sorted(SUBSCRIBABLE_EVENTS)}"
         )
-    problem = destination_error(body.url)
+    problem = await asyncio.to_thread(destination_error, body.url)  # DNS lookup: keep it off the event loop
     if problem:
         raise HTTPException(status_code=400, detail=f"This URL cannot be used: {problem}")
 
@@ -166,6 +167,10 @@ async def test_webhook(
 ):
     """Send a ``ping`` event to the endpoint. Requires permission: webhooks:manage"""
     endpoint = await _own_endpoint(db, api_key, webhook_id)
+    if not endpoint.is_active:
+        raise HTTPException(
+            status_code=409, detail="This endpoint is switched off after repeated failures. Reactivate it first"
+        )
     event = build_event(EVENT_PING, None, {"message": "Webhook endpoint is working"})
     deliver_to(endpoint.id, event)
     return {"queued": True, "event_id": event["id"]}

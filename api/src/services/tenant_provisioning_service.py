@@ -32,6 +32,7 @@ from src.models.tenant_subscription import BillingCycle, SubscriptionStatus, Ten
 from src.services.agent_api.api_key_service import AgentApiKeyService
 from src.services.agents.security import encrypt_value
 from src.services.billing.plan_restriction_service import PlanRestrictionError, PlanRestrictionService
+from src.services.billing.quota_service import QuotaService
 from src.services.billing.subscription_service import SubscriptionService
 from src.services.outbound_webhooks import EVENT_SUBSCRIPTION_UPDATED, emit_event, subscription_event_data
 
@@ -96,9 +97,11 @@ class TenantProvisioningService:
         period_start: datetime | None = None,
         period_end: datetime | None = None,
     ) -> Tenant:
+        # Validate everything before anything is written, so a bad request leaves nothing behind
+        cycle = self._parse_cycle(billing_cycle)
+        period_start, period_end = self._clean_period(period_start, period_end)
         if external_ref:
             await self._ensure_external_ref_free(external_ref)
-
         plan_row = await self._resolve_plan(plan) if plan else None
 
         tenant = Tenant(
@@ -109,13 +112,16 @@ class TenantProvisioningService:
             managed_by_tenant_id=self.manager.id,
             external_ref=external_ref,
         )
-        self.db.add(tenant)
-        await self.db.flush()
-
-        if plan_row:
-            await self._start_subscription(tenant, plan_row, billing_cycle, period_start, period_end)
-        else:
-            await self.db.commit()
+        try:
+            self.db.add(tenant)
+            await self.db.flush()
+            if plan_row:
+                await self._start_subscription(tenant, plan_row, cycle, period_start, period_end)
+            else:
+                await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
         await self.db.refresh(tenant)
         return tenant
 
@@ -163,9 +169,22 @@ class TenantProvisioningService:
             raise ProvisioningError(f"billing_cycle must be one of {[c.value for c in BillingCycle]}") from None
 
     @staticmethod
-    def _check_period(start: datetime | None, end: datetime | None) -> None:
+    def _clean_period(start: datetime | None, end: datetime | None) -> tuple[datetime | None, datetime | None]:
+        """Dates without a timezone are taken as UTC, then checked: the end must follow the start."""
+        start = start.replace(tzinfo=UTC) if start and start.tzinfo is None else start
+        end = end.replace(tzinfo=UTC) if end and end.tzinfo is None else end
         if start and end and end <= start:
             raise ProvisioningError("period_end must be after period_start")
+        return start, end
+
+    @staticmethod
+    def _parse_status(value: str | None) -> SubscriptionStatus | None:
+        if value is None:
+            return None
+        try:
+            return SubscriptionStatus(value.upper())
+        except ValueError:
+            raise ProvisioningError(f"status must be one of {[s.value for s in SubscriptionStatus]}") from None
 
     async def _announce(self, tenant: Tenant, subscription: TenantSubscription) -> None:
         """Tell registered webhook endpoints that this customer's subscription changed. Best effort."""
@@ -184,13 +203,12 @@ class TenantProvisioningService:
         self,
         tenant: Tenant,
         plan: SubscriptionPlan,
-        billing_cycle: str | None,
+        cycle: BillingCycle | None,
         period_start: datetime | None,
         period_end: datetime | None,
     ) -> TenantSubscription:
-        self._check_period(period_start, period_end)
+        """Create the subscription. ``cycle`` and the period must already be validated."""
         subscription = await self.subscriptions.create_subscription(tenant.id, plan.id, payment_provider="external")
-        cycle = self._parse_cycle(billing_cycle)
         if cycle:
             subscription.billing_cycle = cycle
         self._apply_period(subscription, period_start, period_end)
@@ -235,20 +253,17 @@ class TenantProvisioningService:
         Billing runs outside Synkora, so this is how a renewal is reported: send ``renew: true`` (or a
         new period). A new period starts every message pool at zero.
         """
-        self._check_period(period_start, period_end)
+        # Validate everything first: nothing below commits until the request is known to be good
+        cycle = self._parse_cycle(billing_cycle)
+        period_start, period_end = self._clean_period(period_start, period_end)
+        new_status = self._parse_status(status)
         plan_row = await self._resolve_plan(plan) if plan else None
-        new_status = None
-        if status:
-            try:
-                new_status = SubscriptionStatus(status.upper())
-            except ValueError:
-                raise ProvisioningError(f"status must be one of {[s.value for s in SubscriptionStatus]}") from None
 
         subscription = await self._latest_subscription(tenant.id)
         if subscription is None:
             if plan_row is None:
                 raise ProvisioningError("This tenant has no subscription yet: provide a plan", 409)
-            return await self._start_subscription(tenant, plan_row, billing_cycle, period_start, period_end)
+            return await self._start_subscription(tenant, plan_row, cycle, period_start, period_end)
 
         if plan_row and plan_row.id != subscription.plan_id:
             if subscription.status == SubscriptionStatus.ACTIVE:
@@ -257,9 +272,11 @@ class TenantProvisioningService:
                 subscription.plan_id = plan_row.id  # no proration for a subscription that is not running
 
         if renew:
+            # A renewal reported by your billing system means the customer paid, so it overrides a pending
+            # cancellation (unless this same request asks for one again, applied below).
+            subscription.cancel_at_period_end = False
             subscription = await self.subscriptions.renew_subscription(subscription.id)
 
-        cycle = self._parse_cycle(billing_cycle)
         if cycle:
             subscription.billing_cycle = cycle
         self._apply_period(subscription, period_start, period_end)
@@ -311,6 +328,13 @@ class TenantProvisioningService:
         )
         if template is None:
             raise ProvisioningError("Template agent not found", 404)
+
+        wanted_pool = quota_pool if quota_pool is not None else template.quota_pool
+        offered = await QuotaService(self.db).unassigned_pool_keys(tenant.id, wanted_pool)
+        if offered is not None:
+            raise ProvisioningError(
+                f"Pool {wanted_pool or 'default'!r} is not in this customer's plan. Choose one of: {', '.join(offered)}"
+            )
 
         try:
             await PlanRestrictionService(self.db).enforce_agent_limit(tenant.id)

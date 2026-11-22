@@ -252,7 +252,8 @@ async def build_usage_history(db: AsyncSession, tenant_id: UUID, days: int) -> U
     """Messages counted against message pools, per day, pool and agent, for the last ``days`` days."""
     today = datetime.now(UTC).date()
     since = datetime.combine(today - timedelta(days=days - 1), time.min, tzinfo=UTC)
-    day = func.date_trunc("day", QuotaUsageEvent.created_at)
+    # Bucket by UTC day whatever time zone the database session uses
+    day = func.date_trunc("day", func.timezone("UTC", QuotaUsageEvent.created_at))
     rows = await db.execute(
         select(day, QuotaUsageEvent.pool_key, QuotaUsageEvent.agent_id, func.sum(QuotaUsageEvent.amount))
         .where(QuotaUsageEvent.tenant_id == tenant_id, QuotaUsageEvent.created_at >= since)

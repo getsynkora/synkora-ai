@@ -13,6 +13,9 @@ from src.models.subscription_plan import PlanTier, SubscriptionPlan
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
 from src.services.billing.credit_service import CreditService
 
+# Larger than any credit balance (the column is a 32-bit integer)
+UNCAPPED_ROLLOVER = 2**31 - 1
+
 
 class SubscriptionService:
     """Service for managing subscriptions"""
@@ -139,7 +142,9 @@ class SubscriptionService:
         # Start the new period from zero used. Unused credits, top-ups included, expire unless
         # the plan allows rollover, and then only up to max_rollover_credits. Previously the old
         # total stayed in place and every renewal piled the new grant on top of it.
-        max_rollover = int((plan.features or {}).get("max_rollover_credits", 0) or 0)
+        # A rollover plan with no configured cap keeps everything; a cap of 0 keeps nothing.
+        configured_cap = (plan.features or {}).get("max_rollover_credits")
+        max_rollover = UNCAPPED_ROLLOVER if configured_cap in (None, "") else int(configured_cap)
         await self.credit_service.apply_monthly_rollover(
             tenant_id=subscription.tenant_id,
             new_credits=0,

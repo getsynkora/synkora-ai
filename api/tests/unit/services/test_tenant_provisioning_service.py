@@ -82,8 +82,10 @@ class TestCreateAgentFromTemplate:
         tenant = MagicMock(id=uuid4())
         with (
             patch.object(svc, "PlanRestrictionService") as restrictions,
+            patch.object(svc, "QuotaService") as quota,
             patch.object(svc, "encrypt_value", side_effect=lambda v: f"enc({v})"),
         ):
+            quota.return_value.unassigned_pool_keys = AsyncMock(return_value=None)
             restrictions.return_value.enforce_agent_limit = AsyncMock()
             agent = await service.create_agent_from_template(tenant, template.id, "Rider helper", **kwargs)
         added = [c.args[0] for c in db.add.call_args_list]
@@ -121,7 +123,8 @@ class TestCreateAgentFromTemplate:
 
     async def test_agent_limit_of_the_customers_plan_is_enforced(self, service, db):
         db.scalar.side_effect = [self._template()]
-        with patch.object(svc, "PlanRestrictionService") as restrictions:
+        with patch.object(svc, "PlanRestrictionService") as restrictions, patch.object(svc, "QuotaService") as quota:
+            quota.return_value.unassigned_pool_keys = AsyncMock(return_value=None)
             restrictions.return_value.enforce_agent_limit = AsyncMock(side_effect=svc.PlanRestrictionError("limit"))
             with pytest.raises(ProvisioningError) as err:
                 await service.create_agent_from_template(MagicMock(id=uuid4()), uuid4(), "x")
@@ -244,3 +247,125 @@ class TestSubscriptionEvents:
         assert emit.await_args.args[1] == tenant.id
         assert emit.await_args.args[2] == "subscription.updated"
         assert emit.await_args.args[3]["status"] == "SUSPENDED"
+
+
+class TestNothingIsWrittenForABadRequest:
+    async def test_bad_billing_cycle_creates_no_tenant(self, service, db):
+        """Reproduces a 400 that still left the tenant behind, making a corrected retry return 409."""
+        db.scalar.return_value = None
+        with patch.object(service, "_resolve_plan", AsyncMock(return_value=MagicMock(id=uuid4()))):
+            with pytest.raises(ProvisioningError, match="billing_cycle"):
+                await service.create_tenant("Acme", external_ref="c1", plan="Growth", billing_cycle="WEEKLY")
+        db.add.assert_not_called()
+        db.flush.assert_not_called()
+        db.commit.assert_not_called()
+
+    async def test_a_failure_while_creating_rolls_everything_back(self, service, db):
+        db.scalar.return_value = None
+        with (
+            patch.object(service, "_resolve_plan", AsyncMock(return_value=MagicMock(id=uuid4()))),
+            patch.object(service, "_start_subscription", AsyncMock(side_effect=RuntimeError("db error"))),
+        ):
+            with pytest.raises(RuntimeError):
+                await service.create_tenant("Acme", plan="Growth")
+        db.rollback.assert_awaited_once()
+
+    async def test_bad_values_stop_a_subscription_change_before_anything_is_committed(self, service):
+        sub = MagicMock(id=uuid4(), plan_id=uuid4(), status=SubscriptionStatus.ACTIVE, cancel_at_period_end=False)
+        with (
+            patch.object(service, "_latest_subscription", AsyncMock(return_value=sub)),
+            patch.object(service, "_resolve_plan", AsyncMock(return_value=MagicMock(id=uuid4()))),
+            patch.object(service.subscriptions, "upgrade_subscription", AsyncMock()) as upgrade,
+            patch.object(service.subscriptions, "renew_subscription", AsyncMock()) as renew,
+        ):
+            with pytest.raises(ProvisioningError, match="billing_cycle"):
+                await service.set_subscription(MagicMock(id=uuid4()), plan="Scale", renew=True, billing_cycle="WEEKLY")
+        upgrade.assert_not_called()
+        renew.assert_not_called()
+
+    def test_dates_without_a_timezone_are_taken_as_utc(self):
+        naive_start = datetime(2026, 12, 1)
+        aware_end = datetime(2027, 1, 1, tzinfo=UTC)
+        start, end = TenantProvisioningService._clean_period(naive_start, aware_end)
+        assert start.tzinfo is UTC and end == aware_end
+
+    def test_an_end_before_the_start_is_rejected_even_when_only_one_has_a_timezone(self):
+        with pytest.raises(ProvisioningError, match="period_end"):
+            TenantProvisioningService._clean_period(datetime(2026, 12, 2, tzinfo=UTC), datetime(2026, 12, 1))
+
+
+class TestRenewVersusCancelAtPeriodEnd:
+    def _flagged(self):
+        return MagicMock(
+            id=uuid4(),
+            plan_id=uuid4(),
+            status=SubscriptionStatus.ACTIVE,
+            current_period_start=datetime(2026, 11, 1, tzinfo=UTC),
+            current_period_end=datetime(2026, 12, 1, tzinfo=UTC),
+            cancel_at_period_end=True,
+            cancelled_at=None,
+        )
+
+    async def test_a_paid_renewal_clears_a_pending_cancellation_before_renewing(self, service):
+        """Reproduces renew=true, cancel_at_period_end=false ending the subscription instead of renewing it."""
+        sub = self._flagged()
+        flag_seen_by_renew = []
+
+        async def renew(_id):
+            flag_seen_by_renew.append(sub.cancel_at_period_end)
+            return sub
+
+        with (
+            patch.object(service, "_latest_subscription", AsyncMock(return_value=sub)),
+            patch.object(service.subscriptions, "renew_subscription", AsyncMock(side_effect=renew)),
+        ):
+            await service.set_subscription(MagicMock(id=uuid4()), renew=True, cancel_at_period_end=False)
+
+        assert flag_seen_by_renew == [False]  # renew saw no pending cancellation, so it does not cancel
+        assert sub.cancel_at_period_end is False
+        assert sub.status == SubscriptionStatus.ACTIVE
+
+    async def test_renew_without_mentioning_the_flag_also_clears_it(self, service):
+        sub = self._flagged()
+        with (
+            patch.object(service, "_latest_subscription", AsyncMock(return_value=sub)),
+            patch.object(service.subscriptions, "renew_subscription", AsyncMock(return_value=sub)),
+        ):
+            await service.set_subscription(MagicMock(id=uuid4()), renew=True)
+        assert sub.cancel_at_period_end is False
+
+    async def test_renew_and_cancel_in_one_request_renews_then_schedules_the_cancellation(self, service):
+        sub = self._flagged()
+        sub.cancel_at_period_end = False
+        with (
+            patch.object(service, "_latest_subscription", AsyncMock(return_value=sub)),
+            patch.object(service.subscriptions, "renew_subscription", AsyncMock(return_value=sub)),
+        ):
+            await service.set_subscription(MagicMock(id=uuid4()), renew=True, cancel_at_period_end=True)
+        assert sub.cancel_at_period_end is True
+
+
+class TestAgentPoolMustBeInTheCustomersPlan:
+    async def test_a_pool_the_plan_does_not_include_is_refused_before_anything_is_created(self, service, db):
+        """Reproduces an agent created on a pool plan with no matching pool, which then fails every chat."""
+        template = MagicMock(id=uuid4(), tenant_id=MANAGER_ID, quota_pool=None)
+        db.scalar.side_effect = [template]
+        with patch.object(svc, "QuotaService") as quota:
+            quota.return_value.unassigned_pool_keys = AsyncMock(return_value=["assistant", "operations"])
+            with pytest.raises(ProvisioningError, match="assistant, operations") as err:
+                await service.create_agent_from_template(MagicMock(id=uuid4()), template.id, "Helper")
+        assert "'default'" in str(err.value)
+        assert err.value.status_code == 400
+        db.add.assert_not_called()
+        quota.return_value.unassigned_pool_keys.assert_awaited_once()
+
+    async def test_an_explicit_pool_overrides_the_templates_when_checking(self, service, db):
+        template = MagicMock(id=uuid4(), tenant_id=MANAGER_ID, quota_pool="assistant")
+        db.scalar.side_effect = [template]
+        with patch.object(svc, "QuotaService") as quota:
+            quota.return_value.unassigned_pool_keys = AsyncMock(return_value=["assistant"])
+            with pytest.raises(ProvisioningError, match="'typo'"):
+                await service.create_agent_from_template(
+                    MagicMock(id=uuid4()), template.id, "Helper", quota_pool="typo"
+                )
+        assert quota.return_value.unassigned_pool_keys.await_args.args[1] == "typo"

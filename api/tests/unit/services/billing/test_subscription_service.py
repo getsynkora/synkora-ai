@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.subscription_plan import PlanTier, SubscriptionPlan
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
-from src.services.billing.subscription_service import SubscriptionService
+from src.services.billing.subscription_service import UNCAPPED_ROLLOVER, SubscriptionService
 
 
 class TestSubscriptionService:
@@ -185,6 +185,38 @@ class TestSubscriptionService:
             await service.renew_subscription(mock_subscription.id)
 
             service.credit_service.add_credits.assert_not_called()
+
+    async def test_rollover_plan_without_a_configured_cap_keeps_its_credits(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_rollover = True
+            mock_plan.features = {}
+
+            await service.renew_subscription(mock_subscription.id)
+
+        kwargs = service.credit_service.apply_monthly_rollover.call_args.kwargs
+        assert kwargs["max_rollover"] == UNCAPPED_ROLLOVER
+        assert kwargs["credits_rollover"] is True
+
+    async def test_an_explicit_cap_of_zero_keeps_nothing(self, service, mock_db, mock_plan, mock_subscription):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_rollover = True
+            mock_plan.features = {"max_rollover_credits": 0}
+
+            await service.renew_subscription(mock_subscription.id)
+
+        assert service.credit_service.apply_monthly_rollover.call_args.kwargs["max_rollover"] == 0
 
     async def test_renew_subscription_ends_it_when_cancel_at_period_end_is_set(
         self, service, mock_db, mock_plan, mock_subscription

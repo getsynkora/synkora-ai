@@ -35,6 +35,7 @@ class BillingErrorCode(StrEnum):
     SUBSCRIPTION_SUSPENDED = "SUBSCRIPTION_SUSPENDED"
     INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS"
     QUOTA_EXCEEDED = "QUOTA_EXCEEDED"
+    QUOTA_NOT_ASSIGNED = "QUOTA_NOT_ASSIGNED"
     NO_LLM_CONFIG = "NO_LLM_CONFIG"
     CONVERSATION_LIMIT_EXCEEDED = "CONVERSATION_LIMIT_EXCEEDED"
     MESSAGE_LIMIT_EXCEEDED = "MESSAGE_LIMIT_EXCEEDED"
@@ -142,7 +143,22 @@ class ChatBillingService:
         Returns None when the plan does not meter this pool (caller falls back to credits),
         otherwise a result that is invalid once the pool is used up for this billing period.
         """
-        status = await QuotaService(self.db).get_pool_status(tenant_id, quota_pool)
+        quota = QuotaService(self.db)
+        available = await quota.unassigned_pool_keys(tenant_id, quota_pool)
+        if available is not None:
+            wanted = quota_pool or "default"
+            return BillingValidationResult(
+                is_valid=False,
+                error=BillingValidationError(
+                    error_code=BillingErrorCode.QUOTA_NOT_ASSIGNED,
+                    message=(
+                        f"This agent draws from the message allowance '{wanted}', which your plan does not include. "
+                        f"Assign the agent to one of: {', '.join(available)}."
+                    ),
+                    details={"pool": wanted, "available_pools": available},
+                ),
+            )
+        status = await quota.get_pool_status(tenant_id, quota_pool)
         if status is None:
             return None
         if not status.exhausted:

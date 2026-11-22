@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.subscription_plan import SubscriptionPlan
+from src.models.subscription_plan import PlanTier, SubscriptionPlan
 from src.services.billing.plan_import import PlanConfigError, import_plans, validate_quota_pools
 
 EXAMPLE = Path(__file__).resolve().parents[4] / "examples" / "quota_plans.example.json"
@@ -58,16 +58,66 @@ class TestImportPlans:
         assert created[0].quota_pools[0] == {"key": "assistant", "label": "Assistant agent messages", "limit": 2500}
         db.commit.assert_awaited_once()
 
-    async def test_existing_plan_is_updated_in_place(self, db):
-        existing = SubscriptionPlan(name="Growth", price_monthly=1, credits_monthly=5)
-        self._existing(db, existing)
-        outcome = await import_plans(
-            db, [{"name": "Growth", "price_monthly": 299, "quota_pools": [{"key": "a", "limit": 7}]}]
+    async def test_updating_a_plan_changes_only_the_fields_in_the_file(self, db):
+        """Reproduces a price-only update wiping pools and credits and re-activating a retired plan."""
+        pools = [{"key": "a", "label": "A", "limit": 7}]
+        existing = SubscriptionPlan(
+            name="Growth",
+            tier=PlanTier.PROFESSIONAL,
+            price_monthly=1,
+            credits_monthly=500,
+            credits_rollover=True,
+            is_active=False,
+            quota_pools=pools,
         )
+        self._existing(db, existing)
+
+        outcome = await import_plans(db, [{"name": "Growth", "price_monthly": 349}])
+
         assert outcome == {"Growth": "updated"}
-        assert existing.quota_pools == [{"key": "a", "label": "a", "limit": 7}]
-        assert existing.credits_monthly == 0
+        assert existing.price_monthly == 349
+        assert existing.tier == PlanTier.PROFESSIONAL
+        assert existing.credits_monthly == 500 and existing.credits_rollover is True
+        assert existing.is_active is False
+        assert existing.quota_pools == pools
         db.add.assert_not_called()
+
+    async def test_pools_can_be_changed_or_removed_when_the_file_says_so(self, db):
+        existing = SubscriptionPlan(
+            name="Growth", price_monthly=1, quota_pools=[{"key": "a", "label": "A", "limit": 1}]
+        )
+        self._existing(db, existing)
+        await import_plans(db, [{"name": "Growth", "quota_pools": [{"key": "b", "limit": 9}]}])
+        assert existing.quota_pools == [{"key": "b", "label": "b", "limit": 9}]
+        await import_plans(db, [{"name": "Growth", "quota_pools": []}])
+        assert existing.quota_pools is None
+
+    async def test_a_new_plan_gets_defaults_for_what_is_not_mentioned(self, db):
+        self._existing(db, None)
+        await import_plans(db, [{"name": "Basic", "price_monthly": 10}])
+        created = db.add.call_args.args[0]
+        assert created.tier == PlanTier.STARTER and created.credits_monthly == 0
+        assert created.credits_rollover is False and created.is_active is True
+
+    async def test_a_new_plan_without_a_price_is_refused_and_nothing_is_written(self, db):
+        self._existing(db, None)
+        with pytest.raises(PlanConfigError, match="price_monthly is required"):
+            await import_plans(db, [{"name": "Basic"}])
+        db.add.assert_not_called()
+        db.commit.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            {"price_monthly": "ten"},
+            {"price_monthly": 1, "credits_monthly": "lots"},
+            {"price_monthly": 1, "price_yearly": "x"},
+        ],
+    )
+    async def test_bad_numbers_are_a_clear_config_error_not_a_traceback(self, db, bad):
+        self._existing(db, None)
+        with pytest.raises(PlanConfigError, match="must be a number"):
+            await import_plans(db, [{"name": "Basic", **bad}])
 
     async def test_one_bad_plan_writes_nothing(self, db):
         self._existing(db, None)
@@ -87,6 +137,7 @@ class TestImportPlans:
         [[], [{"price_monthly": 1}], [{"name": "A"}], [{"name": "A", "price_monthly": 1, "tier": "GOLD"}]],
     )
     async def test_rejects_invalid_configs(self, db, plans):
+        self._existing(db, None)  # a new plan
         with pytest.raises(PlanConfigError):
             await import_plans(db, plans)
 

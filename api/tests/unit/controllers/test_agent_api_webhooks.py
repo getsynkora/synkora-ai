@@ -125,6 +125,14 @@ class TestManage:
         assert client.post(f"/api/v1/public/webhooks/{uuid4()}/reactivate").json()["is_active"] is True
         assert endpoint.consecutive_failures == 0
 
+    def test_a_switched_off_endpoint_cannot_be_tested(self, client, db):
+        """Reproduces the API saying a ping was queued when nothing would ever be sent."""
+        db.scalar.return_value = _endpoint(is_active=False)
+        with patch.object(hooks, "deliver_to") as deliver:
+            response = client.post(f"/api/v1/public/webhooks/{uuid4()}/test")
+        assert response.status_code == 409 and "Reactivate" in response.json()["detail"]
+        deliver.assert_not_called()
+
     def test_test_sends_a_ping(self, client, db):
         endpoint = _endpoint()
         db.scalar.return_value = endpoint

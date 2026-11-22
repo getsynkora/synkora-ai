@@ -30,6 +30,13 @@ class QuotaUsage(BaseModel):
     pool_key = Column(String(64), nullable=False, comment="Quota pool slug defined by the plan")
     period_start = Column(sa.DateTime(timezone=True), nullable=False, comment="Start of the billing period")
     used = Column(Integer, nullable=False, default=0, comment="Units consumed in this period")
+    notified_percent = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+        comment="Highest usage threshold (80 or 100) already announced by webhook in this period",
+    )
 
 
 class QuotaUsageEvent(BaseModel):

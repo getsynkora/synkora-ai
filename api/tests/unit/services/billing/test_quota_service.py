@@ -103,28 +103,43 @@ class TestConsume:
 
 
 class TestValidateQuota:
+    def _quota(self, quota, status=None, unassigned=None):
+        quota.return_value.unassigned_pool_keys = AsyncMock(return_value=unassigned)
+        quota.return_value.get_pool_status = AsyncMock(return_value=status)
+
     async def test_not_metered_returns_none_so_credits_apply(self, db):
         service = ChatBillingService(db)
         with patch("src.services.billing.chat_billing_service.QuotaService") as quota:
-            quota.return_value.get_pool_status = AsyncMock(return_value=None)
+            self._quota(quota)
             assert await service.validate_quota(uuid4(), "support") is None
 
     async def test_available_pool_is_valid(self, db):
         service = ChatBillingService(db)
         with patch("src.services.billing.chat_billing_service.QuotaService") as quota:
-            quota.return_value.get_pool_status = AsyncMock(return_value=_status(used=1))
+            self._quota(quota, status=_status(used=1))
             result = await service.validate_quota(uuid4(), "support")
         assert result.is_valid
 
     async def test_exhausted_pool_blocks_with_reset_date(self, db):
         service = ChatBillingService(db)
         with patch("src.services.billing.chat_billing_service.QuotaService") as quota:
-            quota.return_value.get_pool_status = AsyncMock(return_value=_status(used=5))
+            self._quota(quota, status=_status(used=5))
             result = await service.validate_quota(uuid4(), "support")
         assert not result.is_valid
         assert result.error.error_code == BillingErrorCode.QUOTA_EXCEEDED
         assert "Support messages" in result.error.message
         assert result.error.details["limit"] == 5
+
+    async def test_agent_outside_the_plans_pools_gets_a_clear_error_not_a_credit_error(self, db):
+        """Reproduces a misleading INSUFFICIENT_CREDITS for an agent whose pool the plan does not include."""
+        service = ChatBillingService(db)
+        with patch("src.services.billing.chat_billing_service.QuotaService") as quota:
+            self._quota(quota, unassigned=["assistant", "operations"])
+            result = await service.validate_quota(uuid4(), None)
+        assert not result.is_valid
+        assert result.error.error_code == BillingErrorCode.QUOTA_NOT_ASSIGNED
+        assert "assistant, operations" in result.error.message
+        assert result.error.details == {"pool": "default", "available_pools": ["assistant", "operations"]}
 
 
 def _result(value):
@@ -183,3 +198,60 @@ class TestRelease:
         assert await QuotaService(db).release(uuid4(), "msg_1") is True
         assert db.execute.call_count == 2
         db.commit.assert_awaited_once()
+
+
+class TestUnassignedPool:
+    POOLS_NO_DEFAULT = [{"key": "assistant", "label": "A", "limit": 10}]
+
+    def _plan(self, pools):
+        return MagicMock(quota_pools=pools)
+
+    def test_plan_with_pools_but_none_matching_is_unassigned(self, db):
+        service = QuotaService(db)
+        assert service.unassigned_pools(self._plan(self.POOLS_NO_DEFAULT), None) == ["assistant"]
+        assert service.unassigned_pools(self._plan(self.POOLS_NO_DEFAULT), "other") == ["assistant"]
+
+    def test_matching_pool_or_a_plan_without_pools_is_not_unassigned(self, db):
+        service = QuotaService(db)
+        assert service.unassigned_pools(self._plan(self.POOLS_NO_DEFAULT), "assistant") is None
+        assert service.unassigned_pools(self._plan(None), "anything") is None
+        assert service.unassigned_pools(self._plan([]), None) is None
+
+    async def test_reserve_and_consume_report_unassigned_instead_of_not_metered(self, db):
+        service = QuotaService(db)
+        sub = MagicMock(current_period_start=None, current_period_end=None)
+        with patch.object(service, "_active_plan", AsyncMock(return_value=(sub, self._plan(self.POOLS_NO_DEFAULT)))):
+            assert await service.reserve(uuid4(), None, "msg_1") == ReserveResult.UNASSIGNED
+            assert await service.consume(uuid4(), None, "msg_1") == ConsumeResult.UNASSIGNED
+        db.execute.assert_not_called()  # nothing is counted
+
+    async def test_no_subscription_still_means_not_metered(self, db):
+        service = QuotaService(db)
+        with patch.object(service, "_active_plan", AsyncMock(return_value=None)):
+            assert await service.reserve(uuid4(), None, "msg_1") == ReserveResult.NOT_METERED
+            assert await service.unassigned_pool_keys(uuid4(), None) is None
+
+
+class TestListPoolStatuses:
+    async def test_one_plan_lookup_and_one_usage_query_however_many_pools(self, db):
+        """Reproduces the plan being re-queried once per pool on every usage and billing call."""
+        service = QuotaService(db)
+        pools = [{"key": f"p{i}", "label": f"P{i}", "limit": 10} for i in range(5)]
+        sub = MagicMock(current_period_start=datetime(2026, 11, 1, tzinfo=UTC), current_period_end=None)
+        usage = MagicMock()
+        usage.all.return_value = [("p1", 3), ("p4", 10)]
+        db.execute.return_value = usage
+        with patch.object(service, "_active_plan", AsyncMock(return_value=(sub, MagicMock(quota_pools=pools)))) as plan:
+            statuses = await service.list_pool_statuses(uuid4())
+
+        plan.assert_awaited_once()
+        assert db.execute.await_count == 1
+        assert [(s.key, s.used) for s in statuses] == [("p0", 0), ("p1", 3), ("p2", 0), ("p3", 0), ("p4", 10)]
+        assert statuses[4].exhausted
+
+    async def test_a_plan_without_pools_runs_no_usage_query(self, db):
+        service = QuotaService(db)
+        sub = MagicMock(current_period_start=None, current_period_end=None)
+        with patch.object(service, "_active_plan", AsyncMock(return_value=(sub, MagicMock(quota_pools=None)))):
+            assert await service.list_pool_statuses(uuid4()) == []
+        db.execute.assert_not_called()

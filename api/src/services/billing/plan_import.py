@@ -9,7 +9,7 @@ See ``api/examples/quota_plans.example.json``.
 """
 
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from sqlalchemy import select
@@ -72,26 +72,43 @@ def validate_quota_pools(pools: Any) -> list[dict]:
     return clean
 
 
+# What a brand-new plan gets for anything the file does not say. An existing plan keeps its own values.
+_CREATE_DEFAULTS = {"tier": PlanTier.STARTER, "credits_monthly": 0, "credits_rollover": False, "is_active": True}
+
+
+def _number(plan_name: str, field: str, value: Any, kind: type) -> Any:
+    try:
+        return kind(str(value)) if kind is Decimal else kind(value)
+    except (InvalidOperation, ValueError, TypeError):
+        raise PlanConfigError(f"plan {plan_name!r}: {field} must be a number") from None
+
+
 def _parse_plan(raw: dict) -> dict:
+    """Only the fields the file mentions are returned, so updating a plan never resets the others."""
     if not isinstance(raw, dict) or not raw.get("name"):
         raise PlanConfigError("each plan needs a name")
     name = raw["name"]
-    try:
-        tier = PlanTier[str(raw.get("tier", "STARTER")).upper()]
-    except KeyError:
-        raise PlanConfigError(f"plan {name!r}: tier must be one of {[t.name for t in PlanTier]}") from None
-    if "price_monthly" not in raw:
-        raise PlanConfigError(f"plan {name!r}: price_monthly is required")
 
-    values: dict[str, Any] = {
-        "tier": tier,
-        "price_monthly": Decimal(str(raw["price_monthly"])),
-        "price_yearly": Decimal(str(raw["price_yearly"])) if raw.get("price_yearly") is not None else None,
-        "credits_monthly": int(raw.get("credits_monthly", 0)),
-        "credits_rollover": bool(raw.get("credits_rollover", False)),
-        "is_active": bool(raw.get("is_active", True)),
-        "quota_pools": validate_quota_pools(raw.get("quota_pools")) or None,
-    }
+    values: dict[str, Any] = {}
+    if "tier" in raw:
+        try:
+            values["tier"] = PlanTier[str(raw["tier"]).upper()]
+        except KeyError:
+            raise PlanConfigError(f"plan {name!r}: tier must be one of {[t.name for t in PlanTier]}") from None
+    if "price_monthly" in raw:
+        values["price_monthly"] = _number(name, "price_monthly", raw["price_monthly"], Decimal)
+    if "price_yearly" in raw:
+        values["price_yearly"] = (
+            None if raw["price_yearly"] is None else _number(name, "price_yearly", raw["price_yearly"], Decimal)
+        )
+    if "credits_monthly" in raw:
+        values["credits_monthly"] = _number(name, "credits_monthly", raw["credits_monthly"], int)
+    if "credits_rollover" in raw:
+        values["credits_rollover"] = bool(raw["credits_rollover"])
+    if "is_active" in raw:
+        values["is_active"] = bool(raw["is_active"])
+    if "quota_pools" in raw:
+        values["quota_pools"] = validate_quota_pools(raw["quota_pools"]) or None
     for column in _OPTIONAL_COLUMNS:
         if column in raw:
             values[column] = raw[column]
@@ -102,7 +119,8 @@ async def import_plans(db: AsyncSession, plans: list[dict]) -> dict[str, str]:
     """
     Create or update plans by name. Returns ``{plan name: "created" | "updated"}``.
 
-    All plans are validated before any are written, so a bad entry changes nothing.
+    A new plan needs ``price_monthly``; anything else it does not mention gets a default. An existing plan
+    changes only the fields in the file. All plans are checked before any are written.
     """
     if not isinstance(plans, list) or not plans:
         raise PlanConfigError("the config must be a non-empty list of plans")
@@ -111,17 +129,24 @@ async def import_plans(db: AsyncSession, plans: list[dict]) -> dict[str, str]:
     if len(set(names)) != len(names):
         raise PlanConfigError("plan names must be unique")
 
-    outcome: dict[str, str] = {}
+    existing: dict[str, SubscriptionPlan | None] = {}
     for item in parsed:
-        existing = (
+        plan = (
             await db.execute(select(SubscriptionPlan).where(SubscriptionPlan.name == item["name"]))
         ).scalar_one_or_none()
-        if existing:
+        existing[item["name"]] = plan
+        if plan is None and "price_monthly" not in item["values"]:
+            raise PlanConfigError(f"plan {item['name']!r} is new, so price_monthly is required")
+
+    outcome: dict[str, str] = {}
+    for item in parsed:
+        plan = existing[item["name"]]
+        if plan:
             for column, value in item["values"].items():
-                setattr(existing, column, value)
+                setattr(plan, column, value)
             outcome[item["name"]] = "updated"
         else:
-            db.add(SubscriptionPlan(name=item["name"], **item["values"]))
+            db.add(SubscriptionPlan(name=item["name"], **{**_CREATE_DEFAULTS, **item["values"]}))
             outcome[item["name"]] = "created"
     await db.commit()
     return outcome

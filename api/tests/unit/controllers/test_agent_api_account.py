@@ -194,6 +194,28 @@ class TestBillingReadPermission:
         key = MagicMock(permissions=permissions)
         assert AgentApiKeyService.check_permission(key, "billing:read") is allowed
 
+    @pytest.mark.parametrize(
+        ("permissions", "required", "allowed"),
+        [
+            # Scoped permissions never satisfy the plain verbs used by the conversation endpoints
+            (["billing:read"], "read", False),
+            (["knowledge:write"], "write", False),
+            (["handoff:write"], "write", False),
+            (["webhooks:manage"], "manage", False),
+            (["tenants:manage"], "manage", False),
+            # Their own exact permission still works
+            (["knowledge:write"], "knowledge:write", True),
+            (["billing:read"], "billing:read", True),
+            # Legacy namespaced style is unchanged
+            (["agent:chat"], "chat", True),
+            (["agent:read"], "read", True),
+            (["chat"], "chat", True),
+            (["*"], "write", True),
+        ],
+    )
+    def test_scoped_permissions_do_not_grant_plain_verbs(self, permissions, required, allowed):
+        assert AgentApiKeyService.check_permission(MagicMock(permissions=permissions), required) is allowed
+
 
 class TestUsageHistory:
     def _rows(self, rows):
@@ -229,6 +251,14 @@ class TestUsageHistory:
         compiled = db.execute.call_args[0][0].compile()
         assert TENANT in compiled.params.values()
         assert "quota_usage_events" in str(compiled) and "created_at" in str(compiled)
+
+    async def test_days_are_bucketed_in_utc_whatever_the_database_time_zone_is(self):
+        """Reproduces daily buckets shifting when the database session is not in UTC."""
+        db = AsyncMock()
+        db.execute.return_value = self._rows([])
+        await account.build_usage_history(db, TENANT, 7)
+        sql = str(db.execute.call_args[0][0].compile(compile_kwargs={"literal_binds": True}))
+        assert "timezone('UTC'" in sql and "date_trunc('day'" in sql
 
     def test_endpoint_returns_the_history_and_needs_billing_read(self, client, auth):
         empty = account.UsageHistoryResponse(from_date=START.date(), to_date=END.date(), total=0, series=[])
