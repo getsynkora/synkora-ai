@@ -499,6 +499,12 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["agent-api-public"],
     ),
     RouteConfig(
+        module="src.controllers.agent_api_account",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-account"],
+    ),
+    RouteConfig(
         module="src.controllers.agent_domains",
         attribute="router",
         prefix="",
