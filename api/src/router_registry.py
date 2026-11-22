@@ -517,6 +517,12 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["agent-api-webhooks"],
     ),
     RouteConfig(
+        module="src.controllers.agent_api_knowledge",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-knowledge"],
+    ),
+    RouteConfig(
         module="src.controllers.agent_domains",
         attribute="router",
         prefix="",

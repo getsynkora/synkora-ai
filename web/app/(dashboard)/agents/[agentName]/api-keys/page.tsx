@@ -572,6 +572,13 @@ function ApiKeyForm({
           ],
         },
         {
+          legend: 'Knowledge access for this agent',
+          options: [
+            { value: 'knowledge:read', label: 'List knowledge bases, view and search documents' },
+            { value: 'knowledge:write', label: 'Create knowledge bases, upload, add, delete and reprocess documents' },
+          ],
+        },
+        {
           legend: 'Account access',
           options: [
             { value: 'billing:read', label: 'Read plan, included messages and usage for this account' },

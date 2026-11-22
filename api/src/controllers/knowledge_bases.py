@@ -11,6 +11,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
+from src.middleware.agent_api_auth import knowledge_read, knowledge_write
 from src.middleware.auth_middleware import get_current_tenant_id
 from src.models.data_source import DataSource, DataSourceStatus, DataSourceType
 from src.models.document import Document, DocumentStatus
@@ -468,7 +469,7 @@ async def delete_knowledge_base(
 @router.get("/{kb_id}/stats", response_model=KnowledgeBaseStatsResponse)
 async def get_knowledge_base_stats(
     kb_id: int,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Get statistics for a knowledge base.
@@ -528,7 +529,7 @@ async def get_knowledge_base_stats(
 async def search_knowledge_base(
     kb_id: int,
     request: SearchRequest,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Search a knowledge base.
@@ -616,7 +617,7 @@ ALLOWED_MIME_TYPES = {
 async def upload_documents(
     kb_id: int,
     files: list[UploadFile] = File(...),
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -870,7 +871,7 @@ async def upload_documents(
 async def add_text_content(
     kb_id: int,
     request: AddTextContentRequest,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -1086,7 +1087,7 @@ async def list_documents(
     has_images: bool | None = Query(None),
     sort_by: str = Query("created_at", pattern="^(created_at|updated_at|title|chunk_count)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -1190,7 +1191,10 @@ async def list_documents(
 
 @router.get("/{kb_id}/documents/{doc_id}", response_model=DocumentDetailResponse)
 async def get_document_details(
-    kb_id: int, doc_id: str, tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    kb_id: int,
+    doc_id: str,
+    tenant_id: UUID = Depends(knowledge_read),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Get detailed information about a specific document."""
     try:
@@ -1285,7 +1289,10 @@ async def get_document_details(
 
 @router.delete("/{kb_id}/documents/{doc_id}", status_code=204)
 async def delete_document(
-    kb_id: int, doc_id: str, tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    kb_id: int,
+    doc_id: str,
+    tenant_id: UUID = Depends(knowledge_write),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a document from the knowledge base."""
     try:
@@ -1326,7 +1333,7 @@ async def delete_document(
 async def reprocess_document(
     kb_id: int,
     doc_id: str,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Re-queue a PENDING or ERROR document for processing."""
