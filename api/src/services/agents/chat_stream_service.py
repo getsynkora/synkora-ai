@@ -849,7 +849,23 @@ class ChatStreamService:
                 if assistant_message is None:
                     raise RuntimeError("The answer could not be saved. Please reload the conversation before retrying.")
 
+                # The reply is saved, so the message counts from here on. This must happen before the stream
+                # ends: a client that disconnects once it has the text must not get the message for free.
+                quota_settled = True
+                self.chat_service.queue_credit_deduction(
+                    tenant_id=tenant_id or db_agent.tenant_id,
+                    agent_id=db_agent.id,
+                    conversation_id=conversation_uuid,
+                    message_id=assistant_message.id,
+                    agent_name=agent_name,
+                    model=agent.llm_client.config.model_name,
+                    content=assistant_content,
+                    quota_key=quota_reserved_key,
+                )
+
             completion_sent = True
+            # The reply was delivered, with or without a saved conversation, so the reserved unit stays used
+            quota_settled = True
             yield await generate_done_event(sources=retrieved_sources, metadata=metadata)
             final_content = "".join(state.assistant_chunks) if hasattr(state, "assistant_chunks") else ""
             await _track({"type": "done", "content": final_content[:5000], "metadata": metadata})
@@ -928,18 +944,6 @@ class ChatStreamService:
                     finally:
                         if managed_db_session and stats_db is not None:
                             await asyncio.shield(stats_db.close())
-                    quota_settled = True
-                    self.chat_service.queue_credit_deduction(
-                        tenant_id=tenant_id or db_agent.tenant_id,
-                        agent_id=db_agent.id,
-                        conversation_id=conversation_uuid,
-                        message_id=assistant_message.id,
-                        agent_name=agent_name,
-                        model=agent.llm_client.config.model_name,
-                        content=assistant_content,
-                        quota_key=quota_reserved_key,
-                    )
-
                     # Skip output delivery when called from the scheduler — scheduled_tasks.py
                     # handles it after the stream finishes to avoid double-sending.
                     if trigger_source != "scheduler":

@@ -1,10 +1,15 @@
 import hashlib
 import hmac
-from datetime import UTC, datetime
+import http.server
+import socket
+import ssl
+import threading
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+import requests
 
 from src.services import outbound_webhooks as hooks
 from src.services.billing.quota_service import QuotaService
@@ -26,17 +31,234 @@ class TestSigning:
         assert hooks.new_secret() != hooks.new_secret()
 
 
-class TestDestination:
-    def test_only_https_and_public_addresses_are_allowed(self):
-        with patch.object(hooks, "validate_url", return_value=(True, None)) as check:
-            assert hooks.destination_error("https://example.com/hook") is None
-        kwargs = check.call_args.kwargs
-        assert kwargs["allowed_schemes"] == ["https"]
-        assert kwargs["block_private_ips"] is True and kwargs["resolve_dns"] is True
+def _resolves_to(*addresses):
+    """Make the resolver answer with these addresses, so no test touches the network."""
+    infos = [(socket.AF_INET6 if ":" in a else socket.AF_INET, socket.SOCK_STREAM, 6, "", (a, 443)) for a in addresses]
+    return patch.object(hooks.socket, "getaddrinfo", return_value=infos)
 
-    def test_a_refused_url_returns_the_reason(self):
-        with patch.object(hooks, "validate_url", return_value=(False, "private address")):
-            assert hooks.destination_error("https://10.0.0.1/x") == "private address"
+
+class TestPublicAddress:
+    @pytest.mark.parametrize("address", ["93.184.216.34", "8.8.8.8", "2606:4700:4700::1111"])
+    def test_public_addresses_are_allowed(self, address):
+        assert hooks.is_public_address(address)
+
+    @pytest.mark.parametrize(
+        "address",
+        [
+            "127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.1.1", "169.254.169.254", "0.0.0.0", "100.64.0.1",
+            "198.18.0.1", "224.0.0.1", "255.255.255.255", "::1", "::", "fe80::1", "fc00::1", "ff02::1",
+            # IPv6 forms that carry an IPv4 address, or are not real destinations
+            "::ffff:127.0.0.1", "::ffff:7f00:1", "::ffff:169.254.169.254", "::ffff:10.0.0.1",
+            "64:ff9b::7f00:1", "64:ff9b::a00:1", "2002:7f00:1::", "2001:0:4136:e378:8000:63bf:3fff:fdd2",
+            "not-an-ip", "",
+        ],
+    )  # fmt: skip
+    def test_everything_else_is_refused(self, address):
+        assert not hooks.is_public_address(address)
+
+    def test_an_ipv4_mapped_public_address_is_judged_as_the_ipv4_address(self):
+        assert hooks.is_public_address("::ffff:8.8.8.8")
+
+
+class TestResolveDestination:
+    def test_a_public_https_url_is_resolved_once_and_pinned(self):
+        with _resolves_to("93.184.216.34") as lookup:
+            destination, error = hooks.resolve_destination("https://hooks.example.com/in/x?a=1&b=2")
+        assert error is None
+        assert destination == hooks.Destination("hooks.example.com", 443, "93.184.216.34", "/in/x?a=1&b=2")
+        lookup.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            # The reviewer's parser-differential bypass: urlparse sees example.com, requests connects to 127.0.0.1
+            "https://127.0.0.1\\@example.com/x",
+            "https://127.0.0.1:8443\\@example.com/",
+            "https://example.com\\@127.0.0.1/",
+            "https://user:pass@example.com/",
+            "https://127.0.0.1@example.com/",
+            "http://hooks.example.com/",
+            "ftp://hooks.example.com/",
+            "//hooks.example.com/",
+            "hooks.example.com/in",
+            "https://hooks.example.com:8443/",
+            "https://hooks.example.com:80/",
+            "https://hooks.exämple.com/",
+            "https://hooks.example.com/with space",
+            "https://hooks.example.com/\r\nHost: evil",
+            "https://hooks.example.com/\x00",
+            "https://",
+            "",
+        ],
+    )
+    def test_url_forms_that_could_be_parsed_two_ways_are_refused(self, url):
+        with _resolves_to("93.184.216.34"):
+            destination, error = hooks.resolve_destination(url)
+        assert destination is None and error
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "127.0.0.1", "10.1.2.3", "169.254.169.254", "[::1]", "[::]", "[::ffff:127.0.0.1]", "[::ffff:7f00:1]",
+            "[::ffff:169.254.169.254]", "[64:ff9b::7f00:1]", "198.18.0.1", "100.64.0.1",
+        ],
+    )  # fmt: skip
+    def test_literal_internal_addresses_are_refused(self, host):
+        destination, error = hooks.resolve_destination(f"https://{host}/")
+        assert destination is None and "private or internal" in error
+
+    @pytest.mark.parametrize(
+        "address", ["127.0.0.1", "10.0.0.5", "169.254.169.254", "::1", "::ffff:7f00:1", "198.18.0.1"]
+    )
+    def test_a_name_that_resolves_to_an_internal_address_is_refused(self, address):
+        with _resolves_to(address):
+            destination, error = hooks.resolve_destination("https://innocent.example.com/")
+        assert destination is None and "private or internal" in error
+
+    def test_every_address_must_be_public_not_just_the_first(self):
+        with _resolves_to("93.184.216.34", "10.0.0.5"):
+            destination, error = hooks.resolve_destination("https://mixed.example.com/")
+        assert destination is None and error
+
+    def test_an_unresolvable_name_is_refused(self):
+        with patch.object(hooks.socket, "getaddrinfo", side_effect=socket.gaierror("no such host")):
+            destination, error = hooks.resolve_destination("https://nope.example.com/")
+        assert destination is None and "could not be resolved" in error
+
+    def test_destination_error_is_the_reason_or_none(self):
+        with _resolves_to("93.184.216.34"):
+            assert hooks.destination_error("https://hooks.example.com/") is None
+        assert hooks.destination_error("http://hooks.example.com/")
+
+
+def _make_certificate(tmp_path, hostname):
+    """A self-signed certificate for ``hostname``; returns (cert_file, key_file)."""
+    cryptography = pytest.importorskip("cryptography")  # noqa: F841
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, hostname)])
+    now = datetime.now(UTC)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=1))
+        .add_extension(x509.SubjectAlternativeName([x509.DNSName(hostname)]), critical=False)
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(key, hashes.SHA256())
+    )
+    cert_file, key_file = tmp_path / f"{hostname}.pem", tmp_path / f"{hostname}.key"
+    cert_file.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    key_file.write_bytes(
+        key.private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.TraditionalOpenSSL, serialization.NoEncryption()
+        )
+    )
+    return cert_file, key_file
+
+
+class _Receiver:
+    """A local HTTPS server that records what a webhook delivery looks like from the receiving side."""
+
+    def __init__(self, cert_file, key_file, respond=204, location=None):
+        self.seen = {}
+        outer = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                outer.seen.update(
+                    host=self.headers.get("Host"),
+                    path=self.path,
+                    body=self.rfile.read(int(self.headers.get("Content-Length", 0))).decode(),
+                    signature=self.headers.get("X-Synkora-Signature"),
+                )
+                self.send_response(respond)
+                if location:
+                    self.send_header("Location", location)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(cert_file, key_file)
+        context.sni_callback = lambda sock, name, ctx: self.seen.__setitem__("sni", name)
+        self.server.socket = context.wrap_socket(self.server.socket, server_side=True)
+        self.port = self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def stop(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+@pytest.fixture
+def receiver_factory(tmp_path):
+    started = []
+
+    def start(hostname="hooks.example.com", **kwargs):
+        cert_file, key_file = _make_certificate(tmp_path, hostname)
+        receiver = _Receiver(cert_file, key_file, **kwargs)
+        receiver.cert_file = cert_file
+        started.append(receiver)
+        return receiver
+
+    yield start
+    for receiver in started:
+        receiver.stop()
+
+
+class TestPinnedDelivery:
+    """Real TLS connections to a local server: the connection goes to the pinned IP, the name is still verified."""
+
+    def _destination(self, receiver, host="hooks.example.com", target="/in?x=1"):
+        return hooks.Destination(host=host, port=receiver.port, ip="127.0.0.1", target=target)
+
+    def test_connects_to_the_pinned_ip_with_the_original_host_name(self, receiver_factory):
+        receiver = receiver_factory("hooks.example.com")
+        headers = {"X-Synkora-Signature": "t=1,v1=abc"}
+        status = hooks.post_pinned(self._destination(receiver), '{"a":1}', headers, 5, verify=str(receiver.cert_file))
+
+        assert status == 204
+        assert receiver.seen["sni"] == "hooks.example.com"  # TLS name is the host, not the IP
+        assert receiver.seen["host"] == f"hooks.example.com:{receiver.port}"
+        assert receiver.seen["path"] == "/in?x=1"
+        assert receiver.seen["body"] == '{"a":1}'
+        assert receiver.seen["signature"] == "t=1,v1=abc"
+
+    def test_the_certificate_must_match_the_host_name_not_the_ip(self, receiver_factory):
+        """A receiver whose certificate is for another name is refused, so the pinned IP cannot impersonate a host."""
+        receiver = receiver_factory("someone-else.example.com")
+        with pytest.raises(requests.exceptions.SSLError):
+            hooks.post_pinned(self._destination(receiver), "{}", {}, 5, verify=str(receiver.cert_file))
+        assert "path" not in receiver.seen  # nothing was sent
+
+    def test_a_redirect_is_not_followed(self, receiver_factory):
+        receiver = receiver_factory(respond=302, location="https://127.0.0.1/internal")
+        status = hooks.post_pinned(self._destination(receiver), "{}", {}, 5, verify=str(receiver.cert_file))
+        assert status == 302
+
+    def test_proxy_environment_variables_are_ignored(self, receiver_factory, monkeypatch):
+        monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:9")  # nothing listens there
+        receiver = receiver_factory()
+        assert hooks.post_pinned(self._destination(receiver), "{}", {}, 5, verify=str(receiver.cert_file)) == 204
+
+    def test_an_ipv6_address_is_bracketed_in_the_url(self):
+        with patch.object(hooks.requests, "Session") as session:
+            session.return_value.post.return_value = MagicMock(status_code=200)
+            hooks.post_pinned(hooks.Destination("hooks.example.com", 443, "2606:4700::1", "/x"), "{}", {}, 5)
+        assert session.return_value.post.call_args.args[0] == "https://[2606:4700::1]:443/x"
+        assert session.return_value.post.call_args.kwargs["headers"]["Host"] == "hooks.example.com"
+        assert session.return_value.trust_env is False
 
 
 class TestEmitEvent:

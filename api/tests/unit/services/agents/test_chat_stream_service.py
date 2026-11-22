@@ -1285,3 +1285,65 @@ class TestStreamWithTools:
                 events.append(event)
 
             assert any('"type": "video"' in str(e) for e in events)
+
+
+class TestMessageIsCountedBeforeTheStreamEnds:
+    """
+    A client that disconnects once it has the reply cancels the generator at its next yield. The plan allowance
+    and the credit deduction must already be settled by then, or the message would be free.
+    """
+
+    @staticmethod
+    def _function():
+        import ast
+        import inspect
+        import textwrap
+
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        source = inspect.getsource(ChatStreamService.stream_agent_response)
+        return ast.parse(textwrap.dedent(source)).body[0]
+
+    @classmethod
+    def _lines(cls, predicate):
+        import ast
+
+        return sorted(node.lineno for node in ast.walk(cls._function()) if predicate(node))
+
+    @staticmethod
+    def _yields_done(node):
+        import ast
+
+        return (
+            isinstance(node, ast.Yield)
+            and isinstance(node.value, ast.Await)
+            and isinstance(node.value.value, ast.Call)
+            and getattr(node.value.value.func, "id", "") == "generate_done_event"
+        )
+
+    def test_the_reply_is_settled_before_the_done_event_is_yielded(self):
+        import ast
+
+        def settles(node):
+            return (
+                isinstance(node, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == "quota_settled" for t in node.targets)
+                and isinstance(node.value, ast.Constant)
+                and node.value.value is True
+            )
+
+        done = self._lines(self._yields_done)
+        settled = self._lines(settles)
+        assert done and settled
+        assert min(settled) < min(done), "quota_settled must be set before the first done event is yielded"
+
+    def test_the_deduction_is_queued_once_and_before_the_done_event_is_yielded(self):
+        import ast
+
+        def queues(node):
+            return isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "queue_credit_deduction"
+
+        queued = self._lines(queues)
+        done = self._lines(self._yields_done)
+        assert len(queued) == 1, "the deduction must be queued exactly once"
+        assert queued[0] < min(done)

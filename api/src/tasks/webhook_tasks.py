@@ -12,7 +12,7 @@ from celery.exceptions import MaxRetriesExceededError
 from src.core.database import get_db
 from src.models.webhook_endpoint import WebhookEndpoint
 from src.services.agents.security import decrypt_value
-from src.services.outbound_webhooks import MAX_CONSECUTIVE_FAILURES, destination_error, sign_payload
+from src.services.outbound_webhooks import MAX_CONSECUTIVE_FAILURES, post_pinned, resolve_destination, sign_payload
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,9 @@ def deliver_webhook_event(self, endpoint_id: str, delivery_id: str, event_type: 
         if endpoint is None or not endpoint.is_active:
             return
 
-        # Check the destination again at send time: DNS may have changed since it was registered
-        error = destination_error(endpoint.url)
+        # Check and resolve the destination now, then connect to exactly that address: DNS may have changed since
+        # the endpoint was registered, and a second lookup at connect time could return an internal address.
+        destination, error = resolve_destination(endpoint.url)
         if error:
             logger.warning("Webhook %s not sent to %s: %s", delivery_id, endpoint.id, error)
             _record_result(db, endpoint, ok=False)
@@ -64,10 +65,8 @@ def deliver_webhook_event(self, endpoint_id: str, delivery_id: str, event_type: 
             "X-Synkora-Signature": f"t={timestamp},v1={signature}",
         }
         try:
-            response = requests.post(
-                endpoint.url, data=body, headers=headers, timeout=DELIVERY_TIMEOUT_SECONDS, allow_redirects=False
-            )
-            ok = 200 <= response.status_code < 300
+            status_code = post_pinned(destination, body, headers, timeout=DELIVERY_TIMEOUT_SECONDS)
+            ok = 200 <= status_code < 300
         except requests.RequestException as err:
             logger.info("Webhook %s to %s failed: %s", delivery_id, endpoint.id, err)
             ok = False

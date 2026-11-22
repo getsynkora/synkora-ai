@@ -151,6 +151,48 @@ class TestAttachments:
             with pytest.raises(HTTPException):
                 pub._validate_attachments([{**original, field: value}], TENANT, conversation_id)
 
+    def test_every_field_that_reaches_the_model_is_covered_by_the_signature(self):
+        """Reproduces a forged download_url or file_type being copied through unsigned into the prompt."""
+        conversation_id = uuid4()
+        original = self._attachment(
+            conversation_id,
+            file_type="text/plain",
+            file_size=5,
+            download_url="https://s3/presigned",
+            thumbnail_url=None,
+            uploaded_at="2026-11-22T10:00:00+00:00",
+        )
+        original["signature"] = pub._attachment_signature(original, TENANT, conversation_id)
+        assert pub._validate_attachments([original], TENANT, conversation_id)
+        for field, value in (
+            ("download_url", "https://evil.example/steal"),
+            ("file_type", "image/png"),
+            ("file_size", 999),
+            ("thumbnail_url", "https://evil.example/t.png"),
+            ("uploaded_at", "2030-01-01T00:00:00+00:00"),
+            ("file_id", "f2"),
+        ):
+            with pytest.raises(HTTPException):
+                pub._validate_attachments([{**original, field: value}], TENANT, conversation_id)
+
+    def test_fields_cannot_be_shifted_into_each_other(self):
+        """Joining fields with a separator would let 'a|b' + 'c' collide with 'a' + 'b|c'."""
+        conversation_id = uuid4()
+        first = {"file_id": "f1", "file_url": "u|x", "file_name": "n", "extracted_text": "t"}
+        second = {"file_id": "f1", "file_url": "u", "file_name": "x|n", "extracted_text": "t"}
+        assert pub._attachment_signature(first, TENANT, conversation_id) != pub._attachment_signature(
+            second, TENANT, conversation_id
+        )
+
+    def test_the_signature_key_is_separated_from_other_uses_of_the_secret(self):
+        import hashlib
+        import hmac as hmac_module
+
+        conversation_id = uuid4()
+        attachment = {"file_id": "f1", "file_url": "u", "file_name": "n", "extracted_text": "t"}
+        unlabelled = hmac_module.new(pub.settings.secret_key.encode(), b"{}", hashlib.sha256).hexdigest()
+        assert pub._attachment_signature(attachment, TENANT, conversation_id) != unlabelled
+
     def test_a_signature_is_bound_to_its_conversation_and_tenant(self):
         conversation_id = uuid4()
         attachment = self._attachment(conversation_id)
@@ -385,3 +427,17 @@ class TestFeedback:
         ):
             response = client.put(self._url(uuid4()), json={"rating": "up", "external_user_id": "someone-else"})
         assert response.status_code == 404
+
+
+class TestConversationListBounds:
+    def _url(self, query):
+        return f"/api/v1/public/agents/{AGENT}/conversations?{query}"
+
+    @pytest.mark.parametrize("query", ["limit=0", "limit=-5", "limit=201", "limit=100000", "offset=-1"])
+    def test_paging_is_bounded(self, client, query):
+        """Reproduces limit=100000 returning the whole table and a negative offset causing a server error."""
+        assert client.get(self._url(query)).status_code == 422
+
+    def test_paging_within_bounds_is_accepted(self, client, db):
+        db.execute.return_value = _result(MagicMock(), items=[])
+        assert client.get(self._url("limit=200&offset=0")).status_code == 200

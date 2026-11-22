@@ -123,19 +123,37 @@ async def _precheck_billing(db: AsyncSession, api_key: AgentApiKey, agent: Agent
         )
 
 
+ATTACHMENT_FIELDS = (
+    "file_id",
+    "file_name",
+    "file_type",
+    "file_size",
+    "file_url",
+    "download_url",
+    "thumbnail_url",
+    "uploaded_at",
+    "extracted_text",
+)
+
+
 def _attachment_signature(attachment: dict, tenant_id: UUID, conversation_id: UUID) -> str:
-    """Server-side proof that this exact file and extracted text were produced by an upload to this conversation."""
-    material = "|".join(
-        [
-            str(tenant_id),
-            str(conversation_id),
-            str(attachment.get("file_id")),
-            str(attachment.get("file_url")),
-            str(attachment.get("file_name")),
-            hashlib.sha256(str(attachment.get("extracted_text") or "").encode()).hexdigest(),
-        ]
+    """
+    Server-side proof that this exact attachment, every field that reaches the model, was produced by an upload
+    to this conversation. The signed text is a canonical JSON object, so fields cannot shift into each other,
+    and a fixed label keeps the key from being reused for anything else.
+    """
+    payload = json.dumps(
+        {
+            "tenant": str(tenant_id),
+            "conversation": str(conversation_id),
+            **{field: attachment.get(field) for field in ATTACHMENT_FIELDS},
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
     )
-    return hmac.new(settings.secret_key.encode(), material.encode(), hashlib.sha256).hexdigest()
+    label = b"synkora.attachment.v1|"
+    return hmac.new(settings.secret_key.encode(), label + payload.encode(), hashlib.sha256).hexdigest()
 
 
 def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conversation_id: UUID | None):
@@ -146,16 +164,6 @@ def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conve
         raise HTTPException(status_code=400, detail="Attachments need a conversation_id: create a conversation first")
     if len(attachments) > MAX_ATTACHMENTS:
         raise HTTPException(status_code=400, detail=f"At most {MAX_ATTACHMENTS} attachments per message")
-    keep = (
-        "file_id",
-        "file_name",
-        "file_type",
-        "file_size",
-        "file_url",
-        "download_url",
-        "thumbnail_url",
-        "uploaded_at",
-    )
     clean = []
     for attachment in attachments:
         given = str(attachment.get("signature") or "")
@@ -164,7 +172,7 @@ def _validate_attachments(attachments: list[dict] | None, tenant_id: UUID, conve
             raise HTTPException(
                 status_code=400, detail="Attachment was not uploaded to this conversation or was changed"
             )
-        item = {key: attachment.get(key) for key in keep}
+        item = {field: attachment.get(field) for field in ATTACHMENT_FIELDS}
         item["extracted_text"] = str(attachment.get("extracted_text") or "")[:MAX_ATTACHMENT_TEXT]
         clean.append(item)
     return clean
@@ -467,8 +475,8 @@ async def get_agent(
 @router.get("/agents/{agent_id}/conversations", response_model=ConversationListResponse)
 async def list_conversations(
     agent_id: UUID,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     external_user_id: str | None = None,
     external_org_id: str | None = None,
     api_key: AgentApiKey = Depends(require_permission("read")),

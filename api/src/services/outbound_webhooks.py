@@ -16,18 +16,23 @@ Events for a tenant also go to the endpoints of the tenant that manages it, with
 
 import hashlib
 import hmac
+import ipaddress
 import logging
 import secrets
+import socket
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+import requests
+import urllib3
+from requests.adapters import HTTPAdapter
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.tenant import Tenant
 from src.models.webhook_endpoint import WebhookEndpoint
-from src.services.security.url_validator import validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +54,130 @@ def sign_payload(secret: str, timestamp: int, body: str) -> str:
     return hmac.new(secret.encode(), f"{timestamp}.{body}".encode(), hashlib.sha256).hexdigest()
 
 
+@dataclass(frozen=True)
+class Destination:
+    """A webhook URL checked and resolved once. Requests connect to ``ip``, never to a second DNS answer."""
+
+    host: str
+    port: int
+    ip: str
+    target: str  # path and query
+
+
+ALLOWED_PORTS = frozenset({443})
+
+# Address forms that embed another address or are not real destinations (NAT64, 6to4, Teredo)
+_TRANSITION_NETWORKS = tuple(
+    ipaddress.ip_network(n) for n in ("64:ff9b::/96", "64:ff9b:1::/48", "2002::/16", "2001::/32")
+)
+
+
+def is_public_address(value: str) -> bool:
+    """True only for a globally routable unicast address. IPv4-mapped IPv6 is judged as its IPv4 address."""
+    try:
+        address = ipaddress.ip_address(value.split("%", 1)[0])
+    except ValueError:
+        return False
+    if isinstance(address, ipaddress.IPv6Address):
+        if address.ipv4_mapped is not None:
+            return is_public_address(str(address.ipv4_mapped))
+        if any(address in network for network in _TRANSITION_NETWORKS):
+            return False
+    return address.is_global and not address.is_multicast
+
+
+def resolve_destination(url: str) -> tuple[Destination | None, str | None]:
+    """
+    Check a webhook URL and resolve it once. Returns ``(destination, None)`` or ``(None, reason)``.
+
+    The URL is parsed with the same parser the HTTP client uses, so what is checked is what is contacted.
+    It must be https on port 443, with no user info, backslashes, spaces, control or non-ASCII characters,
+    and every address the name resolves to must be public.
+    """
+    if not url or any(ord(c) < 33 or ord(c) > 126 or c == "\\" for c in url):
+        return None, "URL contains characters that are not allowed"
+    try:
+        parsed = urllib3.util.parse_url(url)
+    except urllib3.exceptions.LocationParseError:
+        return None, "URL is not valid"
+    if parsed.scheme != "https":
+        return None, "Only https URLs are allowed"
+    if parsed.auth:
+        return None, "URLs with a user name or password are not allowed"
+    if not parsed.host:
+        return None, "URL has no host"
+    port = parsed.port or 443
+    if port not in ALLOWED_PORTS:
+        return None, f"Only port {sorted(ALLOWED_PORTS)[0]} is allowed"
+
+    host = parsed.host.strip("[]")
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError):
+        return None, "Host name could not be resolved"
+    addresses = [info[4][0] for info in infos]
+    if not addresses:
+        return None, "Host name could not be resolved"
+    blocked = [a for a in addresses if not is_public_address(a)]
+    if blocked:
+        return None, "URL points to a private or internal address"
+    return Destination(host=host, port=port, ip=addresses[0], target=parsed.request_uri or "/"), None
+
+
 def destination_error(url: str) -> str | None:
-    """Why this URL may not receive webhooks, or None. HTTPS only; private and internal addresses are refused."""
-    ok, error = validate_url(url, allowed_schemes=["https"], block_private_ips=True, resolve_dns=True)
-    return None if ok else (error or "URL is not allowed")
+    """Why this URL may not receive webhooks, or None."""
+    return resolve_destination(url)[1]
+
+
+class _PinnedAdapter(HTTPAdapter):
+    """Connect to a fixed IP while the TLS name, certificate check and Host header use the original host."""
+
+    def __init__(self, host: str):
+        self._pinned_host = host
+        super().__init__()
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        super().init_poolmanager(
+            connections,
+            maxsize,
+            block=block,
+            server_hostname=self._pinned_host,
+            assert_hostname=self._pinned_host,
+            **pool_kwargs,
+        )
+
+
+def post_pinned(
+    destination: Destination, body: str, headers: dict[str, str], timeout: float, verify: bool | str = True
+) -> int:
+    """
+    POST ``body`` to the destination's already-checked IP and return the HTTP status.
+
+    No second DNS lookup happens, redirects are not followed, environment proxies are ignored, and the
+    response body is never read, so a hostile receiver cannot redirect, rebind or flood the worker.
+    """
+    ip = f"[{destination.ip}]" if ":" in destination.ip else destination.ip
+    url = f"https://{ip}:{destination.port}{destination.target}"
+    host_header = destination.host if destination.port == 443 else f"{destination.host}:{destination.port}"
+    session = requests.Session()
+    session.trust_env = False
+    session.mount("https://", _PinnedAdapter(destination.host))
+    try:
+        response = session.post(
+            url,
+            data=body,
+            headers={**headers, "Host": host_header},
+            timeout=timeout,
+            allow_redirects=False,
+            stream=True,
+            verify=verify,
+        )
+        try:
+            return response.status_code
+        finally:
+            response.close()
+    finally:
+        session.close()
 
 
 def build_event(event_type: str, tenant: Tenant | None, data: dict[str, Any]) -> dict[str, Any]:
