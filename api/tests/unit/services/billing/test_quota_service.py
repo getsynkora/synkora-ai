@@ -33,6 +33,8 @@ def db():
     session.scalar = AsyncMock()
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
+    session.savepoint = AsyncMock()
+    session.begin_nested = AsyncMock(return_value=session.savepoint)
     return session
 
 
@@ -177,7 +179,9 @@ class TestReserve:
         db.execute.side_effect = [_result(uuid4()), _result(None), _result(None)]  # update matched no row
         with patch.object(service, "_active_plan", AsyncMock(return_value=metered)):
             assert await service.reserve(uuid4(), "support", "msg_1") == ReserveResult.EXHAUSTED
-        db.rollback.assert_awaited_once()
+        # only the savepoint is undone: a session rollback would expire the caller's loaded objects
+        db.savepoint.rollback.assert_awaited_once()
+        db.rollback.assert_not_called()
         db.commit.assert_not_called()
 
     async def test_same_key_twice_is_duplicate(self, db, metered):
@@ -186,6 +190,7 @@ class TestReserve:
         with patch.object(service, "_active_plan", AsyncMock(return_value=metered)):
             assert await service.reserve(uuid4(), "support", "msg_1") == ReserveResult.DUPLICATE
         assert db.execute.call_count == 1
+        db.rollback.assert_not_called()
 
 
 class TestRelease:

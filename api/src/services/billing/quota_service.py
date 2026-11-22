@@ -271,7 +271,8 @@ class QuotaService:
             .returning(QuotaUsageEvent.id)
         )
         if inserted.scalar_one_or_none() is None:
-            await self.db.rollback()
+            # Nothing was written. No session rollback: it would expire every object the caller has loaded in this
+            # session, and their next attribute read would fail outside the async context (MissingGreenlet).
             return ConsumeResult.DUPLICATE
 
         await self.db.execute(
@@ -334,6 +335,9 @@ class QuotaService:
         key = pool["key"]
         limit = int(pool["limit"])
 
+        # A savepoint, not a session rollback, undoes the event row when the pool is full: a session rollback expires
+        # every object the caller has loaded (the agent, the conversation), and their next attribute read fails.
+        savepoint = await self.db.begin_nested()
         inserted = await self.db.execute(
             pg_insert(QuotaUsageEvent)
             .values(
@@ -348,7 +352,7 @@ class QuotaService:
             .returning(QuotaUsageEvent.id)
         )
         if inserted.scalar_one_or_none() is None:
-            await self.db.rollback()
+            await savepoint.rollback()  # nothing was written
             return ReserveResult.DUPLICATE
 
         await self.db.execute(
@@ -369,9 +373,10 @@ class QuotaService:
         )
         used_now = taken.scalar_one_or_none()
         if used_now is None:
-            await self.db.rollback()  # also discards the event row inserted above
+            await savepoint.rollback()  # discards the event row inserted above
             return ReserveResult.EXHAUSTED
 
+        await savepoint.commit()
         await self.db.commit()
         await self._notify_thresholds(tenant_id, pool, period_start, used_now)
         return ReserveResult.RESERVED
@@ -385,8 +390,7 @@ class QuotaService:
         )
         row = deleted.first()
         if row is None:
-            await self.db.rollback()
-            return False
+            return False  # nothing was deleted; no session rollback (it would expire the caller's loaded objects)
         pool_key, period_start, amount = row
         await self.db.execute(
             update(QuotaUsage)
