@@ -3,7 +3,7 @@ Pydantic schemas for Agent API endpoints.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,6 +21,17 @@ class ChatRequest(BaseModel):
         None,
         max_length=20,
         description="Language of the client UI as a BCP-47 code (e.g. 'de'); the agent replies in it by default",
+    )
+    external_user_id: str | None = Field(
+        None,
+        max_length=255,
+        description="Your id for the end user. Stored on a new conversation; continuing it requires the same id",
+    )
+    external_org_id: str | None = Field(None, max_length=255, description="Your id for the end user's organisation")
+    external_user_name: str | None = Field(None, max_length=255)
+    external_user_email: str | None = Field(None, max_length=255)
+    attachments: list[dict[str, Any]] | None = Field(
+        None, description="Objects returned by the attachments endpoint for this conversation (max 5)"
     )
 
 
@@ -158,11 +169,42 @@ class UsageStatsResponse(BaseModel):
     by_endpoint: list[UsageByEndpoint] = Field(..., description="Usage statistics by endpoint")
 
 
+class ChatResponse(BaseModel):
+    """Complete (non-streaming) agent reply."""
+
+    conversation_id: UUID = Field(..., description="Conversation the reply belongs to")
+    message: str = Field(..., description="The agent's reply")
+    sources: list[dict[str, Any]] = Field(default_factory=list, description="Knowledge sources used, if any")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CreateConversationRequest(BaseModel):
+    """Request schema for starting a conversation."""
+
+    name: str | None = Field(None, max_length=255)
+    external_user_id: str | None = Field(None, max_length=255)
+    external_org_id: str | None = Field(None, max_length=255)
+    external_user_name: str | None = Field(None, max_length=255)
+    external_user_email: str | None = Field(None, max_length=255)
+
+
+class MessageFeedbackRequest(BaseModel):
+    """Thumbs up or down on a message."""
+
+    rating: Literal["up", "down"] | None = Field(None, description="'up', 'down', or null to clear")
+    comment: str | None = Field(None, max_length=2000)
+    external_user_id: str | None = Field(None, max_length=255, description="Must match the conversation's end user")
+
+
 class ConversationInfo(BaseModel):
     """Schema for conversation information."""
 
     id: UUID = Field(..., description="Conversation ID")
     agent_id: UUID = Field(..., description="Agent ID")
+    name: str | None = Field(None, description="Conversation name")
+    external_user_id: str | None = Field(None, description="Your id for the end user it belongs to")
+    external_org_id: str | None = Field(None, description="Your id for the end user's organisation")
+    external_user_name: str | None = Field(None)
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     message_count: int = Field(..., description="Number of messages in conversation")

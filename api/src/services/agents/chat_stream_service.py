@@ -366,7 +366,11 @@ class ChatStreamService:
                             await self.chat_service.mark_message_failed(
                                 message=user_message_saved, error="quota_exceeded", db=db
                             )
-                        yield await generate_error_event(_quota_msg)
+                        yield await generate_error_event(
+                            _quota_msg,
+                            error_code="QUOTA_EXCEEDED",
+                            details=_quota_check.error.details if _quota_check and _quota_check.error else {},
+                        )
                         return
                 if _reserve == ReserveResult.RESERVED:
                     quota_reserved_key = _quota_key
