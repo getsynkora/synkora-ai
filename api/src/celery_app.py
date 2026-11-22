@@ -98,8 +98,9 @@ celery_app.conf.update(
         "send_bulk_notifications_task": {"queue": "notifications"},
         "send_in_app_notification_task": {"queue": "notifications"},
         "send_slack_notification_task": {"queue": "notifications"},
-        # Outbound webhooks: kept off the shared default queue so a slow receiver cannot stall other work
-        "webhooks.deliver_event": {"queue": "webhooks"},
+        # Outbound webhooks share the notifications worker (each attempt is capped at 12 s, and failing endpoints
+        # are switched off), so no extra worker is needed
+        "webhooks.deliver_event": {"queue": "notifications"},
         "send_teams_notification_task": {"queue": "notifications"},
         "send_webhook_notification_task": {"queue": "notifications"},
         "send_whatsapp_notification_task": {"queue": "notifications"},

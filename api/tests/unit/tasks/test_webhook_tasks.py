@@ -194,7 +194,8 @@ class TestSlowReceivers:
             _run()
         assert "SECRET" not in caplog.text and "ConnectionError" in caplog.text
 
-    def test_delivery_runs_on_its_own_queue(self):
+    def test_delivery_runs_on_the_notifications_queue(self):
+        # the existing notifications worker consumes this queue, so no extra worker has to be deployed
         from src.celery_app import celery_app
 
-        assert celery_app.conf.task_routes["webhooks.deliver_event"] == {"queue": "webhooks"}
+        assert celery_app.conf.task_routes["webhooks.deliver_event"] == {"queue": "notifications"}

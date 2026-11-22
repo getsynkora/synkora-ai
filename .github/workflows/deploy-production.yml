@@ -649,7 +649,6 @@ jobs:
             -f "$MANIFESTS_TMP/celery-worker-agents-keda.yml" \
             -f "$MANIFESTS_TMP/celery-worker-billing-deployment.yml" \
             -f "$MANIFESTS_TMP/celery-worker-notifications-deployment.yml" \
-            -f "$MANIFESTS_TMP/celery-worker-webhooks-deployment.yml" \
             -f "$MANIFESTS_TMP/celery-beat-deployment.yml" \
             -f "$MANIFESTS_TMP/bot-worker-deployment.yaml" \
             -f "$MANIFESTS_TMP/synkora-frontend-deployment.yml" \
@@ -709,7 +708,6 @@ jobs:
           kubectl set image deployment/synkora-celery-worker-agents   celery-worker-agents=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}   -n ${{ env.NAMESPACE }}
           kubectl set image deployment/synkora-celery-worker-billing  celery-worker-billing=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}  -n ${{ env.NAMESPACE }}
           kubectl set image deployment/synkora-celery-worker-notifications celery-worker-notifications=${{ env.ECR_REGISTRY }}/synkora-api:${TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-celery-worker-webhooks celery-worker-webhooks=${{ env.ECR_REGISTRY }}/synkora-api:${TAG} -n ${{ env.NAMESPACE }}
           kubectl set image deployment/synkora-celery-beat            celery-beat=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}            -n ${{ env.NAMESPACE }}
           kubectl set image deployment/synkora-bot-worker             bot-worker=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}             -n ${{ env.NAMESPACE }}
           kubectl set image deployment/synkora-flower                 flower=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}                 -n ${{ env.NAMESPACE }}
@@ -757,7 +755,7 @@ jobs:
         if: needs.changes.outputs.api == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           for dep in synkora-api synkora-celery-worker synkora-celery-worker-agents \
-                     synkora-celery-worker-billing synkora-celery-worker-notifications synkora-celery-worker-webhooks \
+                     synkora-celery-worker-billing synkora-celery-worker-notifications \
                      synkora-celery-beat synkora-bot-worker; do
             if ! kubectl rollout status deployment/${dep} -n ${{ env.NAMESPACE }} --timeout=600s; then
               echo "${dep} rollout failed, rolling back..."
@@ -812,7 +810,7 @@ jobs:
             curl -sf --max-time 10 "http://synkora-api.${{ env.NAMESPACE }}.svc.cluster.local:5001/api/health" || {
             echo "Health check failed! Rolling back API workloads..."
             for dep in synkora-api synkora-celery-worker synkora-celery-worker-agents \
-                       synkora-celery-worker-billing synkora-celery-worker-notifications synkora-celery-worker-webhooks \
+                       synkora-celery-worker-billing synkora-celery-worker-notifications \
                        synkora-celery-beat synkora-bot-worker synkora-flower; do
               kubectl rollout undo deployment/${dep} -n ${{ env.NAMESPACE }} || true
             done
