@@ -292,6 +292,7 @@ class ChatService:
         agent_name: str,
         model: str,
         content: str,
+        quota_key: str | None = None,
     ) -> None:
         """
         Queue async credit deduction task.
@@ -304,6 +305,7 @@ class ChatService:
             agent_name: Agent name
             model: LLM model used
             content: Message content
+            quota_key: Key under which a plan quota unit was reserved before the reply, if any
         """
         try:
             action_type = get_chat_action_type(model)
@@ -319,6 +321,7 @@ class ChatService:
                     "agent_name": agent_name,
                     "model": model,
                     "message_length": len(content),
+                    "quota_key": quota_key,
                 },
             )
 

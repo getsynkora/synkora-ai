@@ -540,3 +540,57 @@ class TestUtilityMethods:
         env = paddle_service.get_environment()
 
         assert env == "sandbox"
+
+
+class TestPaddleTransactionRenewals:
+    @pytest.fixture
+    def paddle_service(self):
+        with patch("src.services.billing.paddle_service.IntegrationConfigService") as mock_integration:
+            with patch("src.services.billing.paddle_service.SubscriptionService"):
+                with patch("src.services.billing.paddle_service.CreditService"):
+                    mock_integration.return_value._decrypt_config.return_value = {
+                        "credentials": {"api_key": "k"},
+                        "settings": {"environment": "sandbox"},
+                    }
+                    from src.services.billing.paddle_service import PaddleService
+
+                    service = PaddleService(AsyncMock(spec=AsyncSession))
+                    service.subscription_service.renew_subscription = AsyncMock()
+                    return service
+
+    def _data(self, origin):
+        return {
+            "id": "txn_1",
+            "origin": origin,
+            "subscription_id": "sub_1",
+            "customer_id": "ctm_1",
+            "custom_data": {"type": "subscription", "tenant_id": str(uuid.uuid4()), "plan_id": str(uuid.uuid4())},
+        }
+
+    def _existing(self, paddle_service):
+        existing = MagicMock(cancel_at_period_end=True, current_period_start="old-start")
+        plan_result, sub_result = MagicMock(), MagicMock()
+        plan_result.scalar_one_or_none.return_value = MagicMock()
+        sub_result.scalar_one_or_none.return_value = existing
+        paddle_service.db.execute = AsyncMock(side_effect=[plan_result, sub_result])
+        paddle_service.db.commit = AsyncMock()
+        paddle_service.db.refresh = AsyncMock()
+        return existing
+
+    @pytest.mark.parametrize(
+        "origin", ["subscription_update", "subscription_charge", "subscription_payment_method_change"]
+    )
+    async def test_a_proration_or_one_off_charge_does_not_start_a_new_period(self, paddle_service, origin):
+        """Reproduces a plan change resetting allowances and granting another month of credits."""
+        existing = self._existing(paddle_service)
+        assert await paddle_service._handle_transaction_completed(self._data(origin))
+        paddle_service.subscription_service.renew_subscription.assert_not_called()
+        assert existing.current_period_start == "old-start"
+        assert existing.cancel_at_period_end is True  # a scheduled cancellation is left alone
+
+    @pytest.mark.parametrize("origin", ["web", "api", "subscription_recurring", None])
+    async def test_checkout_and_recurring_renewals_start_a_new_period(self, paddle_service, origin):
+        existing = self._existing(paddle_service)
+        assert await paddle_service._handle_transaction_completed(self._data(origin))
+        paddle_service.subscription_service.renew_subscription.assert_awaited_once()
+        assert existing.cancel_at_period_end is False  # a paid subscription clears a pending cancellation

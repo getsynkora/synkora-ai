@@ -98,6 +98,7 @@ from .platform_settings import PlatformSettings
 from .project import Project, ProjectStatus
 from .project_agent import ProjectAgent
 from .proxy_config import ProxyConfig, ProxyProvider
+from .quota_usage import QuotaUsage, QuotaUsageEvent
 from .recall_webhook_receipt import RecallWebhookReceipt
 from .review_analytics import PeriodType, ReviewAnalytics, SentimentTrend
 from .role import Role
@@ -133,6 +134,7 @@ from .user_oauth_token import UserOAuthToken
 from .video_generation_job import VideoGenerationJob, VideoJobStatus
 from .voice_api_key import VoiceApiKey
 from .voice_usage import VoiceUsage
+from .webhook_endpoint import WebhookEndpoint
 from .whatsapp_bot import WhatsAppBot
 from .widget_agent_route import WidgetAgentRoute
 from .widget_push_subscription import WidgetPushSubscription
@@ -293,6 +295,9 @@ __all__ = [
     "TenantSubscription",
     "SubscriptionStatus",
     "CreditBalance",
+    "QuotaUsage",
+    "QuotaUsageEvent",
+    "WebhookEndpoint",
     "CreditTransaction",
     "TransactionType",
     "AgentPricing",

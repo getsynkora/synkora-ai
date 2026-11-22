@@ -82,6 +82,16 @@ export interface TenantSubscription {
   updated_at: string;
 }
 
+export interface QuotaPoolUsage {
+  key: string;
+  label: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  period_start: string;
+  period_end: string;
+}
+
 export interface CreditBalance {
   id: string;
   tenant_id: string;

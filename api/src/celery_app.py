@@ -45,6 +45,7 @@ celery_app = Celery(
         "src.tasks.agent_tasks",  # Webhook event processing
         "src.tasks.email_tasks",  # Email sending
         "src.tasks.billing_tasks",  # Credit deduction and reconciliation
+        "src.tasks.webhook_tasks",  # Outbound webhook delivery
         "src.tasks.workspace_tasks",  # Workspace cleanup
         "src.tasks.data_source_tasks",  # Data source ingestion
         "src.tasks.document_tasks",  # Document processing
@@ -97,6 +98,9 @@ celery_app.conf.update(
         "send_bulk_notifications_task": {"queue": "notifications"},
         "send_in_app_notification_task": {"queue": "notifications"},
         "send_slack_notification_task": {"queue": "notifications"},
+        # Outbound webhooks share the notifications worker (each attempt is capped at 12 s, and failing endpoints
+        # are switched off), so no extra worker is needed
+        "webhooks.deliver_event": {"queue": "notifications"},
         "send_teams_notification_task": {"queue": "notifications"},
         "send_webhook_notification_task": {"queue": "notifications"},
         "send_whatsapp_notification_task": {"queue": "notifications"},

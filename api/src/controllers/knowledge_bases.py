@@ -1,5 +1,6 @@
 """Knowledge Base API endpoints."""
 
+import asyncio
 import logging
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
+from src.middleware.agent_api_auth import knowledge_read, knowledge_write
 from src.middleware.auth_middleware import get_current_tenant_id
 from src.models.data_source import DataSource, DataSourceStatus, DataSourceType
 from src.models.document import Document, DocumentStatus
@@ -26,6 +28,7 @@ from src.models.knowledge_base import (
 from src.models.tenant import Tenant, TenantPlan, TenantStatus
 from src.services.knowledge_base import RAGService
 from src.services.knowledge_base.embedding_service import EmbeddingService
+from src.services.security.document_limits import DocumentLimitError, docx_text, pdf_text_pymupdf
 from src.services.security.file_security import FileSecurityService, ScannerUnavailableError
 from src.services.storage.s3_storage import S3StorageService
 from src.tasks.kb_tasks import crawl_and_process_kb, process_kb_documents
@@ -468,7 +471,7 @@ async def delete_knowledge_base(
 @router.get("/{kb_id}/stats", response_model=KnowledgeBaseStatsResponse)
 async def get_knowledge_base_stats(
     kb_id: int,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Get statistics for a knowledge base.
@@ -528,7 +531,7 @@ async def get_knowledge_base_stats(
 async def search_knowledge_base(
     kb_id: int,
     request: SearchRequest,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Search a knowledge base.
@@ -612,11 +615,30 @@ ALLOWED_MIME_TYPES = {
 }
 
 
+MAX_KB_PDF_PAGES = 2000
+MAX_KB_TEXT_CHARS = 5_000_000
+
+
+def _extract_kb_text(content: bytes, file_type: str) -> str:
+    """Text of an uploaded knowledge-base document, with size, page and text limits. Runs in a worker thread."""
+    if file_type in ("txt", "md", "csv"):
+        return content.decode("utf-8", errors="ignore")[:MAX_KB_TEXT_CHARS]
+    if file_type == "html":
+        from bs4 import BeautifulSoup
+
+        return BeautifulSoup(content, "html.parser").get_text(separator="\n", strip=True)[:MAX_KB_TEXT_CHARS]
+    if file_type == "pdf":
+        return pdf_text_pymupdf(content, MAX_KB_PDF_PAGES, MAX_KB_TEXT_CHARS)
+    if file_type == "docx":
+        return docx_text(content, MAX_KB_TEXT_CHARS)
+    return ""
+
+
 @router.post("/{kb_id}/documents/upload", response_model=DocumentUploadResponse)
 async def upload_documents(
     kb_id: int,
     files: list[UploadFile] = File(...),
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -665,7 +687,8 @@ async def upload_documents(
                 # SECURITY: Comprehensive file validation (magic bytes, dangerous extensions,
                 # malicious content patterns) before any further processing.
                 try:
-                    validation_result = _kb_file_security.validate_file(
+                    validation_result = await asyncio.to_thread(
+                        _kb_file_security.validate_file,
                         file_content=content,
                         filename=file.filename or "unnamed",
                         category="document",
@@ -687,7 +710,7 @@ async def upload_documents(
                     )
 
                 # Detect MIME type
-                mime = magic.from_buffer(content, mime=True)
+                mime = await asyncio.to_thread(magic.from_buffer, content, mime=True)
 
                 # libmagic does content-based detection and misidentifies markdown files
                 # containing code blocks (e.g. Python snippets) as text/x-script.python.
@@ -728,7 +751,8 @@ async def upload_documents(
 
                 # Upload to S3
                 logger.info(f"Uploading {file.filename} to S3...")
-                s3_result = s3_storage.upload_file(
+                s3_result = await asyncio.to_thread(
+                    s3_storage.upload_file,
                     file_content=content,
                     key=s3_key,
                     content_type=mime,
@@ -740,28 +764,9 @@ async def upload_documents(
                     },
                 )
 
-                # Extract text content based on file type
-                text_content = ""
-                if file_type == "txt" or file_type == "md" or file_type == "csv":
-                    text_content = content.decode("utf-8", errors="ignore")
-                elif file_type == "html":
-                    from bs4 import BeautifulSoup
-
-                    soup = BeautifulSoup(content, "html.parser")
-                    text_content = soup.get_text(separator="\n", strip=True)
-                elif file_type == "pdf":
-                    import fitz  # PyMuPDF
-
-                    doc = fitz.open(stream=content, filetype="pdf")
-                    text_content = "\n".join([page.get_text() for page in doc])
-                    doc.close()
-                elif file_type == "docx":
-                    from io import BytesIO
-
-                    from docx import Document as DocxDocument
-
-                    doc = DocxDocument(BytesIO(content))
-                    text_content = "\n".join([para.text for para in doc.paragraphs])
+                # Extract text content based on file type. Parsing is blocking and a small file can unpack into
+                # something huge, so it runs in a worker thread with size, page and text limits.
+                text_content = await asyncio.to_thread(_extract_kb_text, content, file_type)
 
                 # Create a stub Document record immediately so the file
                 # is visible in the browser before Celery finishes.
@@ -809,7 +814,9 @@ async def upload_documents(
 
             except Exception as e:
                 logger.error(f"Error processing file {file.filename}: {e}")
-                failed_files.append({"filename": file.filename, "error": str(e)})
+                # Our own limit messages are safe to show; anything else may carry storage or parser internals
+                reason = str(e) if isinstance(e, DocumentLimitError) else "This file could not be processed"
+                failed_files.append({"filename": file.filename, "error": reason})
                 continue
 
         # Dispatch chunking + embedding to Celery so the HTTP request returns immediately
@@ -870,7 +877,7 @@ async def upload_documents(
 async def add_text_content(
     kb_id: int,
     request: AddTextContentRequest,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -1086,7 +1093,7 @@ async def list_documents(
     has_images: bool | None = Query(None),
     sort_by: str = Query("created_at", pattern="^(created_at|updated_at|title|chunk_count)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -1190,7 +1197,10 @@ async def list_documents(
 
 @router.get("/{kb_id}/documents/{doc_id}", response_model=DocumentDetailResponse)
 async def get_document_details(
-    kb_id: int, doc_id: str, tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    kb_id: int,
+    doc_id: str,
+    tenant_id: UUID = Depends(knowledge_read),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Get detailed information about a specific document."""
     try:
@@ -1285,7 +1295,10 @@ async def get_document_details(
 
 @router.delete("/{kb_id}/documents/{doc_id}", status_code=204)
 async def delete_document(
-    kb_id: int, doc_id: str, tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    kb_id: int,
+    doc_id: str,
+    tenant_id: UUID = Depends(knowledge_write),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a document from the knowledge base."""
     try:
@@ -1326,7 +1339,7 @@ async def delete_document(
 async def reprocess_document(
     kb_id: int,
     doc_id: str,
-    tenant_id: UUID = Depends(get_current_tenant_id),
+    tenant_id: UUID = Depends(knowledge_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Re-queue a PENDING or ERROR document for processing."""

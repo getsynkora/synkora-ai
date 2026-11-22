@@ -304,7 +304,8 @@ class HandoffAccess:
     permissions: frozenset[str] | None = None  # None denotes an authenticated account.
 
     def require(self, permission: str) -> None:
-        if self.permissions is not None and permission not in self.permissions and "*" not in self.permissions:
+        # Handoff permissions are scoped: like every scoped permission they must be listed exactly ("*" is not enough)
+        if self.permissions is not None and permission not in self.permissions:
             raise HTTPException(403, f"API key requires {permission} permission")
 
 
@@ -340,3 +341,55 @@ async def require_handoff_read(access: HandoffAccess = Depends(get_handoff_acces
 async def require_handoff_write(access: HandoffAccess = Depends(get_handoff_access)) -> HandoffAccess:
     access.require("handoff:write")
     return access
+
+
+def knowledge_tenant(permission: str):
+    """
+    Tenant for a knowledge-base route that a logged-in user or an API key may call.
+
+    - A logged-in user is checked exactly as before.
+    - An API key (``sk_...``) must have ``permission``, and when the route names a knowledge base it must
+      be one linked to the key's own agent. Routes that return secrets or fetch arbitrary URLs do not use
+      this dependency, so keys cannot reach them.
+    """
+
+    async def dependency(
+        request: Request,
+        authorization: str | None = Header(None),
+        db: AsyncSession = Depends(get_async_db),
+    ) -> uuid.UUID:
+        from src.middleware.auth_middleware import authenticate_tenant_token, extract_token
+
+        token = extract_token(authorization)
+        if not token:
+            raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": "Bearer"})
+        if not token.startswith("sk_"):
+            _, tenant_id = await authenticate_tenant_token(token, db)
+            return tenant_id
+
+        key = await AgentApiAuthMiddleware.authenticate_request(request, permission)
+        raw_kb_id = request.path_params.get("kb_id")
+        if raw_kb_id is not None:
+            from src.models.agent_knowledge_base import AgentKnowledgeBase
+
+            try:
+                kb_id = int(raw_kb_id)
+            except (TypeError, ValueError):
+                raise HTTPException(404, "Knowledge base not found") from None
+            linked = await db.scalar(
+                select(AgentKnowledgeBase.id).where(
+                    AgentKnowledgeBase.agent_id == key.agent_id,
+                    AgentKnowledgeBase.knowledge_base_id == kb_id,
+                )
+            )
+            if linked is None:
+                raise HTTPException(404, "Knowledge base not found")
+        return key.tenant_id
+
+    dependency.knowledge_permission = permission  # lets tests and tooling see which routes accept keys
+    return dependency
+
+
+# Shared instances, so a route and a test refer to the very same dependency
+knowledge_read = knowledge_tenant("knowledge:read")
+knowledge_write = knowledge_tenant("knowledge:write")

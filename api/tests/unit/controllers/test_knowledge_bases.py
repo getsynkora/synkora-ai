@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from src.controllers.knowledge_bases import router
 from src.core.database import get_async_db
+from src.middleware.agent_api_auth import knowledge_read, knowledge_write
 from src.middleware.auth_middleware import get_current_tenant_id
 from src.models.knowledge_base import IngestionMode, KnowledgeBaseStatus
 
@@ -54,6 +55,8 @@ def client(mock_db_session):
     # Mock tenant ID
     tenant_id = uuid.uuid4()
     app.dependency_overrides[get_current_tenant_id] = lambda: tenant_id
+    app.dependency_overrides[knowledge_read] = lambda: tenant_id
+    app.dependency_overrides[knowledge_write] = lambda: tenant_id
 
     return TestClient(app), tenant_id, mock_db_session
 

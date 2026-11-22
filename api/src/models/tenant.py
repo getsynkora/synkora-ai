@@ -7,7 +7,7 @@ and user accounts with role-based access control.
 
 from enum import StrEnum
 
-from sqlalchemy import JSON, Column, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, UniqueConstraint, false
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
@@ -67,6 +67,8 @@ class Tenant(BaseModel, StatusMixin):
 
     __tablename__ = "tenants"
 
+    __table_args__ = (UniqueConstraint("managed_by_tenant_id", "external_ref", name="uq_tenant_managed_external_ref"),)
+
     name = Column(
         String(255),
         nullable=False,
@@ -118,6 +120,28 @@ class Tenant(BaseModel, StatusMixin):
         nullable=False,
         default="false",
         comment="Whether to auto-assign users with matching email domain (stored as string)",
+    )
+
+    # Reseller / embedded use: a tenant that sets up and manages customer tenants through the API
+    can_manage_tenants = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+        comment="May create and manage customer tenants through the API (enabled by a platform operator)",
+    )
+    managed_by_tenant_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Tenant that created and manages this tenant, if any",
+    )
+    external_ref = Column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="Managing system's own id for this customer (unique per managing tenant)",
     )
 
     # Platform OAuth app preferences

@@ -13,6 +13,9 @@ from src.models.subscription_plan import PlanTier, SubscriptionPlan
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
 from src.services.billing.credit_service import CreditService
 
+# Larger than any credit balance (the column is a 32-bit integer)
+UNCAPPED_ROLLOVER = 2**31 - 1
+
 
 class SubscriptionService:
     """Service for managing subscriptions"""
@@ -91,14 +94,15 @@ class SubscriptionService:
         await self.db.commit()
         await self.db.refresh(subscription)
 
-        # Add credits to tenant's balance
-        await self.credit_service.add_credits(
-            tenant_id=tenant_id,
-            amount=plan.credits_monthly,
-            transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
-            description=f"Monthly credits for {plan.name} plan",
-            reference_id=subscription.id,
-        )
+        # Add credits to tenant's balance (plans that meter messages per pool grant none)
+        if plan.credits_monthly:
+            await self.credit_service.add_credits(
+                tenant_id=tenant_id,
+                amount=plan.credits_monthly,
+                transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
+                description=f"Monthly credits for {plan.name} plan",
+                reference_id=subscription.id,
+            )
 
         return subscription
 
@@ -114,22 +118,49 @@ class SubscriptionService:
         if not plan:
             raise ValueError(f"Plan {subscription.plan_id} not found")
 
+        # The tenant asked to cancel at the end of the period: end it instead of renewing
+        if subscription.cancel_at_period_end:
+            subscription.status = SubscriptionStatus.CANCELLED
+            subscription.cancelled_at = datetime.now(UTC)
+            await self.db.commit()
+            await self.db.refresh(subscription)
+            from src.services.outbound_webhooks import EVENT_SUBSCRIPTION_UPDATED, emit_event, subscription_event_data
+
+            await emit_event(
+                self.db,
+                subscription.tenant_id,
+                EVENT_SUBSCRIPTION_UPDATED,
+                subscription_event_data(subscription, plan.name),
+            )
+            return subscription
+
         # Update billing period
         now = datetime.now(UTC)
         subscription.current_period_start = now
         subscription.current_period_end = now + timedelta(days=30)
 
-        # Reset monthly usage
-        await self.credit_service.reset_monthly_usage(subscription.tenant_id)
-
-        # Add new monthly credits
-        await self.credit_service.add_credits(
+        # Start the new period from zero used. Unused credits, top-ups included, expire unless
+        # the plan allows rollover, and then only up to max_rollover_credits. Previously the old
+        # total stayed in place and every renewal piled the new grant on top of it.
+        # A rollover plan with no configured cap keeps everything; a cap of 0 keeps nothing.
+        configured_cap = (plan.features or {}).get("max_rollover_credits")
+        max_rollover = UNCAPPED_ROLLOVER if configured_cap in (None, "") else int(configured_cap)
+        await self.credit_service.apply_monthly_rollover(
             tenant_id=subscription.tenant_id,
-            amount=plan.credits_monthly,
-            transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
-            description=f"Monthly credits renewal for {plan.name} plan",
-            reference_id=subscription.id,
+            new_credits=0,
+            max_rollover=max_rollover,
+            credits_rollover=bool(plan.credits_rollover),
         )
+
+        # Add the new monthly credits (quota-pool plans grant none; their pools reset per period)
+        if plan.credits_monthly:
+            await self.credit_service.add_credits(
+                tenant_id=subscription.tenant_id,
+                amount=plan.credits_monthly,
+                transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
+                description=f"Monthly credits renewal for {plan.name} plan",
+                reference_id=subscription.id,
+            )
 
         await self.db.commit()
         await self.db.refresh(subscription)
@@ -186,6 +217,19 @@ class SubscriptionService:
                     description=f"Prorated credits for upgrade to {new_plan.name}",
                     reference_id=current_subscription.id,
                 )
+            elif credit_diff < 0:
+                # A downgrade takes back the prorated difference (never more than is unused), so switching plans
+                # back and forth cannot mint credits.
+                balance = await self.credit_service.get_balance(tenant_id)
+                take_back = min(-credit_diff, max(balance.available_credits, 0) if balance else 0)
+                if take_back > 0:
+                    await self.credit_service.add_credits(
+                        tenant_id=tenant_id,
+                        amount=-take_back,
+                        transaction_type=TransactionType.ADJUSTMENT,
+                        description=f"Prorated credits removed for downgrade to {new_plan.name}",
+                        reference_id=current_subscription.id,
+                    )
 
         # Update subscription
         current_subscription.plan_id = new_plan_id

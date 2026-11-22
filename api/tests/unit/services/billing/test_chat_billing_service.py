@@ -294,7 +294,46 @@ class TestValidateChatRequest:
         with patch("src.services.billing.chat_billing_service.PlanRestrictionService"):
             with patch("src.services.billing.chat_billing_service.CreditService"):
                 mock_db = AsyncMock(spec=AsyncSession)
-                return ChatBillingService(mock_db)
+                service = ChatBillingService(mock_db)
+                # Legacy case: the plan has no quota pools, so shared credits apply
+                service.validate_quota = AsyncMock(return_value=None)
+                return service
+
+    async def test_quota_pool_replaces_credit_check(self, billing_service):
+        """A metered pool with room left is enough; credits are not consulted."""
+        billing_service.validate_quota = AsyncMock(return_value=BillingValidationResult(is_valid=True))
+        credits = AsyncMock(return_value=BillingValidationResult(is_valid=True))
+        with (
+            patch.object(
+                billing_service,
+                "validate_subscription",
+                AsyncMock(return_value=BillingValidationResult(is_valid=True)),
+            ),
+            patch.object(billing_service, "validate_credits", credits),
+        ):
+            result = await billing_service.validate_chat_request(uuid.uuid4(), "gpt-4", quota_pool="support")
+
+        assert result.is_valid is True
+        credits.assert_not_called()
+
+    async def test_exhausted_quota_pool_blocks_chat(self, billing_service):
+        """An exhausted pool stops the chat even if the tenant has credits."""
+        error = BillingValidationError(error_code=BillingErrorCode.QUOTA_EXCEEDED, message="Used up")
+        billing_service.validate_quota = AsyncMock(return_value=BillingValidationResult(is_valid=False, error=error))
+        credits = AsyncMock(return_value=BillingValidationResult(is_valid=True))
+        with (
+            patch.object(
+                billing_service,
+                "validate_subscription",
+                AsyncMock(return_value=BillingValidationResult(is_valid=True)),
+            ),
+            patch.object(billing_service, "validate_credits", credits),
+        ):
+            result = await billing_service.validate_chat_request(uuid.uuid4(), "gpt-4", quota_pool="support")
+
+        assert result.is_valid is False
+        assert result.error.error_code == BillingErrorCode.QUOTA_EXCEEDED
+        credits.assert_not_called()
 
     async def test_all_validations_pass(self, billing_service):
         """Test when all validations pass."""

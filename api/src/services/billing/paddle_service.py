@@ -816,6 +816,10 @@ class PaddleService:
             result = await self.db.execute(select(TenantSubscription).filter(TenantSubscription.tenant_id == tenant_id))
             tenant_subscription = result.scalar_one_or_none()
 
+            # Only a checkout or a recurring renewal starts a new period. A proration charge for a plan change
+            # ("subscription_update") or a one-off charge must not reset allowances or grant another month.
+            starts_new_period = data.get("origin") in (None, "web", "api", "subscription_recurring")
+
             if tenant_subscription:
                 # Update existing subscription
                 tenant_subscription.plan_id = plan_id
@@ -823,7 +827,12 @@ class PaddleService:
                 tenant_subscription.paddle_customer_id = customer_id
                 tenant_subscription.payment_provider = "paddle"
                 tenant_subscription.status = SubscriptionStatus.ACTIVE
-                tenant_subscription.current_period_start = datetime.now(UTC)
+                if starts_new_period:
+                    # A paid (re-)subscription replaces an earlier request to cancel at period end. A one-off charge
+                    # or a payment-method change does not, or a cancellation still scheduled at Paddle is lost here.
+                    tenant_subscription.cancel_at_period_end = False
+                    tenant_subscription.cancelled_at = None
+                    tenant_subscription.current_period_start = datetime.now(UTC)
                 # Period end will be updated by subscription.updated webhook
             else:
                 from datetime import timedelta
@@ -845,7 +854,8 @@ class PaddleService:
             await self.db.refresh(tenant_subscription)
 
             # Allocate monthly credits
-            await self.subscription_service.renew_subscription(tenant_subscription.id)
+            if starts_new_period:
+                await self.subscription_service.renew_subscription(tenant_subscription.id)
 
             logger.info(f"Handled transaction.completed for subscription {subscription_id}")
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.subscription_plan import PlanTier, SubscriptionPlan
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
-from src.services.billing.subscription_service import SubscriptionService
+from src.services.billing.subscription_service import UNCAPPED_ROLLOVER, SubscriptionService
 
 
 class TestSubscriptionService:
@@ -42,6 +42,7 @@ class TestSubscriptionService:
         sub.tenant_id = uuid4()
         sub.plan_id = mock_plan.id
         sub.status = SubscriptionStatus.ACTIVE
+        sub.cancel_at_period_end = False
         sub.current_period_start = datetime.now(UTC)
         sub.current_period_end = datetime.now(UTC) + timedelta(days=30)
         return sub
@@ -133,15 +134,108 @@ class TestSubscriptionService:
         with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
             # Mock credit service
             service.credit_service = AsyncMock()
-            service.credit_service.reset_monthly_usage = AsyncMock()
+            service.credit_service.apply_monthly_rollover = AsyncMock()
             service.credit_service.add_credits = AsyncMock()
+            mock_plan.credits_rollover = True
+            mock_plan.features = {"max_rollover_credits": 30000}
 
             renewed_sub = await service.renew_subscription(mock_subscription.id)
 
             assert renewed_sub.current_period_end > datetime.now(UTC) + timedelta(days=29)
-            service.credit_service.reset_monthly_usage.assert_called_once_with(mock_subscription.tenant_id)
+            # Old balance is reduced to what may roll over, then exactly one month's grant is added
+            service.credit_service.apply_monthly_rollover.assert_called_once_with(
+                tenant_id=mock_subscription.tenant_id,
+                new_credits=0,
+                max_rollover=30000,
+                credits_rollover=True,
+            )
             service.credit_service.add_credits.assert_called_once()
             mock_db.commit.assert_called_once()
+
+    async def test_renew_subscription_without_rollover_expires_unused_credits(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_rollover = False
+            mock_plan.features = {"max_rollover_credits": 30000}
+
+            await service.renew_subscription(mock_subscription.id)
+
+            kwargs = service.credit_service.apply_monthly_rollover.call_args.kwargs
+            assert kwargs["credits_rollover"] is False
+
+    async def test_renew_subscription_skips_credit_grant_for_quota_pool_plans(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_monthly = 0
+            mock_plan.credits_rollover = False
+            mock_plan.features = None
+
+            await service.renew_subscription(mock_subscription.id)
+
+            service.credit_service.add_credits.assert_not_called()
+
+    async def test_rollover_plan_without_a_configured_cap_keeps_its_credits(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_rollover = True
+            mock_plan.features = {}
+
+            await service.renew_subscription(mock_subscription.id)
+
+        kwargs = service.credit_service.apply_monthly_rollover.call_args.kwargs
+        assert kwargs["max_rollover"] == UNCAPPED_ROLLOVER
+        assert kwargs["credits_rollover"] is True
+
+    async def test_an_explicit_cap_of_zero_keeps_nothing(self, service, mock_db, mock_plan, mock_subscription):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+            mock_plan.credits_rollover = True
+            mock_plan.features = {"max_rollover_credits": 0}
+
+            await service.renew_subscription(mock_subscription.id)
+
+        assert service.credit_service.apply_monthly_rollover.call_args.kwargs["max_rollover"] == 0
+
+    async def test_renew_subscription_ends_it_when_cancel_at_period_end_is_set(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+        mock_subscription.cancel_at_period_end = True
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+
+            result = await service.renew_subscription(mock_subscription.id)
+
+        assert result.status == SubscriptionStatus.CANCELLED
+        assert result.cancelled_at is not None
+        # No new period and no new credits for a subscription the tenant asked to end
+        service.credit_service.apply_monthly_rollover.assert_not_called()
+        service.credit_service.add_credits.assert_not_called()
 
     async def test_renew_subscription_not_found(self, service, mock_db):
         mock_result = MagicMock()
@@ -191,6 +285,38 @@ class TestSubscriptionService:
             assert updated_sub.plan_id == new_plan_id
             service.credit_service.add_credits.assert_called_once()  # Prorated credits
             mock_db.commit.assert_called_once()
+
+    async def test_a_downgrade_takes_back_the_prorated_credits(self, service, mock_db, mock_subscription, mock_plan):
+        """Reproduces switching plans back and forth minting credits: upgrades added, downgrades never removed."""
+        low = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=1000)
+        low.name = "Low"
+        high = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=30000)
+        mock_subscription.current_period_end = datetime.now(UTC) + timedelta(days=29, hours=12)
+        service.credit_service = AsyncMock()
+        service.credit_service.get_balance = AsyncMock(return_value=MagicMock(available_credits=50_000))
+        with (
+            patch.object(service, "get_tenant_subscription", AsyncMock(return_value=mock_subscription)),
+            patch.object(service, "get_plan", AsyncMock(side_effect=[low, high])),
+        ):
+            await service.upgrade_subscription(mock_subscription.tenant_id, low.id)
+
+        amount = service.credit_service.add_credits.await_args.kwargs["amount"]
+        expected_take_back = int((30000 / 30 - 1000 / 30) * 29)  # 29 whole days left in the period
+        assert amount == -expected_take_back
+
+    async def test_a_downgrade_never_takes_more_than_is_unused(self, service, mock_db, mock_subscription):
+        low = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=1000)
+        low.name = "Low"
+        high = MagicMock(spec=SubscriptionPlan, id=uuid4(), credits_monthly=30000)
+        mock_subscription.current_period_end = datetime.now(UTC) + timedelta(days=29, hours=12)
+        service.credit_service = AsyncMock()
+        service.credit_service.get_balance = AsyncMock(return_value=MagicMock(available_credits=500))
+        with (
+            patch.object(service, "get_tenant_subscription", AsyncMock(return_value=mock_subscription)),
+            patch.object(service, "get_plan", AsyncMock(side_effect=[low, high])),
+        ):
+            await service.upgrade_subscription(mock_subscription.tenant_id, low.id)
+        assert service.credit_service.add_credits.await_args.kwargs["amount"] == -500
 
     async def test_upgrade_subscription_no_active(self, service):
         with patch.object(service, "get_tenant_subscription", AsyncMock(return_value=None)):

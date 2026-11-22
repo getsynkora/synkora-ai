@@ -320,6 +320,7 @@ async def chat_stream(
                 tenant_id=tenant_id,
                 model_name=llm_config.model_name,
                 conversation_id=conversation_uuid,
+                quota_pool=_preflight_agent.quota_pool,
             )
 
             if not billing_result.is_valid:
@@ -585,6 +586,7 @@ async def _ws_chat_pipeline(
                 tenant_id=tenant_id,
                 model_name=llm_config.model_name,
                 conversation_id=conversation_uuid,
+                quota_pool=db_agent.quota_pool,
             )
             if not billing_result.is_valid:
                 yield _json.dumps(

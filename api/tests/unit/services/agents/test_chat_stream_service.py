@@ -1285,3 +1285,128 @@ class TestStreamWithTools:
                 events.append(event)
 
             assert any('"type": "video"' in str(e) for e in events)
+
+
+class TestMessageIsCountedWhenTheReplyGoesOut:
+    """
+    The public stream marks the plan-allowance unit as used the moment any part of the reply is about to reach the
+    client, for every kind of agent. A client that disconnects, or a failure after content went out, cannot get the
+    reply for free; the unit is only given back when nothing was delivered.
+    """
+
+    @staticmethod
+    def _service():
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        return ChatStreamService(Mock(), Mock())
+
+    @staticmethod
+    def _inner(events, seen):
+        async def fake_inner(self, *args, _quota_run=None, **kwargs):
+            try:
+                for event in events:
+                    yield event
+            finally:
+                seen["settled_at_cleanup"] = _quota_run.settled
+
+        return fake_inner
+
+    async def _consume(self, events, stop_after):
+        from src.helpers.streaming_helpers import (
+            generate_chunk_event,  # noqa: F401  (documents the event format the wrapper reads)
+        )
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        seen = {}
+        with patch.object(ChatStreamService, "_stream_agent_response", self._inner(events, seen)):
+            stream = self._service().stream_agent_response(agent_name="a", message="m")
+            received = []
+            async for event in stream:
+                received.append(event)
+                if len(received) == stop_after:
+                    break
+            await stream.aclose()  # what a client disconnect does
+        return seen["settled_at_cleanup"]
+
+    async def test_disconnecting_after_the_first_text_still_counts_the_message(self):
+        from src.helpers.streaming_helpers import generate_chunk_event, generate_start_event, generate_status_event
+
+        events = [
+            await generate_start_event("a", 0.0),
+            await generate_status_event("thinking"),
+            await generate_chunk_event("Hello"),
+            await generate_chunk_event(" world"),
+        ]
+        assert await self._consume(events, stop_after=3) is True
+
+    async def test_disconnecting_before_any_reply_gives_the_unit_back(self):
+        from src.helpers.streaming_helpers import generate_start_event, generate_status_event
+
+        events = [await generate_start_event("a", 0.0), await generate_status_event("thinking")]
+        assert await self._consume(events, stop_after=2) is False
+
+    async def test_an_error_before_any_reply_gives_the_unit_back(self):
+        from src.helpers.streaming_helpers import generate_error_event, generate_start_event
+
+        events = [await generate_start_event("a", 0.0), await generate_error_event("model unavailable")]
+        assert await self._consume(events, stop_after=99) is False
+
+    @pytest.mark.parametrize(
+        "event_type",
+        ["chunk", "done", "chart", "card_set", "diagram", "form", "generated_image", "generated_video",
+         "infographic", "video", "vehicle_map"],
+    )  # fmt: skip
+    async def test_every_kind_of_reply_content_counts(self, event_type):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        assert await self._consume([await generate_sse_event(event_type, {"x": 1})], stop_after=1) is True
+
+    @pytest.mark.parametrize("event_type", ["start", "status", "tool_status", "llm_call", "first_token", "error"])
+    async def test_progress_events_alone_do_not_count(self, event_type):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        assert await self._consume([await generate_sse_event(event_type, {"x": 1})], stop_after=1) is False
+
+    async def test_a_completed_tool_call_counts_even_with_no_text_yet(self):
+        """Reproduces getting a tool's side effects (an email sent, data written) for free by disconnecting."""
+        from src.helpers.streaming_helpers import generate_tool_status_event
+
+        started = await generate_tool_status_event("send_email", "started")
+        completed = await generate_tool_status_event("send_email", "completed")
+        assert await self._consume([started], stop_after=1) is False
+        assert await self._consume([started, completed], stop_after=2) is True
+
+    async def test_a_finished_sub_agent_counts_but_a_started_one_does_not(self):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        start = await generate_sse_event("workflow_event", {"event_type": "sub_agent_start", "agent_name": "a"})
+        done = await generate_sse_event(
+            "workflow_event", {"event_type": "sub_agent_complete", "agent_name": "a", "output_preview": "result"}
+        )
+        assert await self._consume([start], stop_after=1) is False
+        assert await self._consume([start, done], stop_after=2) is True
+
+    async def test_an_approval_request_counts(self):
+        from src.helpers.streaming_helpers import generate_sse_event
+
+        assert await self._consume([await generate_sse_event("approval_required", {"id": "x"})], stop_after=1) is True
+
+    def test_the_inner_stream_queues_the_deduction_once_and_cleans_up_in_one_shielded_step(self):
+        """Reproduces a cancellation in the quota release skipping the run-lease release and the session close."""
+        import ast
+        import inspect
+        import textwrap
+
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        tree = ast.parse(textwrap.dedent(inspect.getsource(ChatStreamService._stream_agent_response)))
+        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)]
+        assert sum(getattr(c.func, "attr", "") == "queue_credit_deduction" for c in calls) == 1
+
+        outer_try = next(n for n in tree.body[0].body if isinstance(n, ast.Try) and n.finalbody)
+        shielded = [
+            n
+            for n in ast.walk(ast.Module(body=outer_try.finalbody, type_ignores=[]))
+            if isinstance(n, ast.Call) and getattr(n.func, "attr", "") == "shield"
+        ]
+        assert len(shielded) == 1 and getattr(shielded[0].args[0].func, "id", "") == "_cleanup"

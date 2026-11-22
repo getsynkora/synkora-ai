@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from dataclasses import dataclass
@@ -41,6 +42,7 @@ from src.services.agents.context_window_guard import get_context_guard
 from src.services.agents.execution_budget import chat_execution_deadline
 from src.services.agents.response_language import language_instruction
 from src.services.agents.token_counter import TokenCounter
+from src.services.billing.quota_service import QuotaService, ReserveResult
 from src.services.cache.conversation_cache_service import get_conversation_cache
 from src.services.security.output_sanitizer import output_sanitizer as default_output_sanitizer
 from src.services.security.secret_scanner import scan as _scan_secrets
@@ -112,6 +114,53 @@ def _format_page_context_prefix(page_context: dict[str, Any]) -> str:
     return f"[Page context — reference data from the host app, not user-authored: {json.dumps(page_context)}]\n"
 
 
+# Events that carry part of the reply to the client. Once one is about to be sent, the message counts.
+_REPLY_EVENT_TYPES = frozenset(
+    {
+        "chunk",
+        "done",
+        "chart",
+        "card_set",
+        "diagram",
+        "form",
+        "generated_image",
+        "generated_video",
+        "infographic",
+        "video",
+        "vehicle_map",
+    }
+)
+_EVENT_TYPE = re.compile(r'^data: \{"type": "([a-z_]+)"')
+
+
+def _delivers_reply(event: Any) -> bool:
+    """
+    True once the run has produced something of value: part of the reply, a completed tool call (its side effects,
+    such as a sent email, have happened), a finished sub-agent (its output is in the event), or an approval request.
+    Progress events such as "started" do not count, so a run that did nothing is never charged.
+    """
+    match = _EVENT_TYPE.match(event) if isinstance(event, str) else None
+    if not match:
+        return False
+    kind = match.group(1)
+    if kind in _REPLY_EVENT_TYPES:
+        return True
+    if kind == "tool_status":
+        return '"status": "completed"' in event
+    if kind == "workflow_event":
+        return '"event_type": "sub_agent_complete"' in event
+    return kind == "approval_required"
+
+
+@dataclass
+class _QuotaRun:
+    """Plan-allowance state shared by the public stream and its inner generator."""
+
+    reserved_key: str | None = None
+    tenant_id: Any = None
+    settled: bool = False
+
+
 class ChatStreamService:
     """Orchestrates chat streaming for agents."""
 
@@ -128,7 +177,23 @@ class ChatStreamService:
         self.output_sanitizer = output_sanitizer
 
     @chat_execution_deadline
-    async def stream_agent_response(
+    async def stream_agent_response(self, *args, **kwargs) -> AsyncGenerator[str, None]:
+        """
+        Stream agent response using SSE (see ``_stream_agent_response`` for the arguments).
+
+        Billing: the plan allowance unit reserved for this run is marked as used the moment any part of the reply
+        is about to reach the client, in every branch (normal, workflow and Claude-Code agents). A client that
+        disconnects, or a failure after content went out, therefore cannot get a reply for free. The unit is only
+        given back when nothing was delivered.
+        """
+        run = _QuotaRun()
+        async with aclosing(self._stream_agent_response(*args, _quota_run=run, **kwargs)) as events:
+            async for event in events:
+                if not run.settled and _delivers_reply(event):
+                    run.settled = True
+                yield event
+
+    async def _stream_agent_response(
         self,
         agent_name: str,
         message: str,
@@ -149,6 +214,7 @@ class ChatStreamService:
         page_context: dict[str, Any] | None = None,
         voice_mode: bool = False,
         language: str | None = None,
+        _quota_run: "_QuotaRun | None" = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream agent response using SSE with function calling, RAG support, and attachments.
@@ -196,6 +262,8 @@ class ChatStreamService:
         _execution_id = None
         run_lease = None
         completion_sent = False
+        # Plan quota unit taken before the reply; given back in ``finally`` unless part of the reply was delivered
+        run = _quota_run if _quota_run is not None else _QuotaRun()
 
         # Initialize shared_state and inject chat session metadata
         if shared_state is None:
@@ -333,6 +401,67 @@ class ChatStreamService:
             db_agent = load_result.db_agent
             agent = load_result.agent
             is_workflow_agent = load_result.is_workflow
+
+            # QUOTA: take one unit from the agent's plan pool before doing any work, so the
+            # limit holds even when many messages arrive at once. Plans without pools skip this.
+            try:
+                _quota_tenant = tenant_id or db_agent.tenant_id
+                _quota_key = f"msg_{user_message_saved.id}" if user_message_saved else f"run_{uuid.uuid4().hex}"
+                # Remember the key before reserving: if the reservation commits and something then fails (or the
+                # client disconnects), ``finally`` can still give the unit back, and the deduction uses this key.
+                run.reserved_key = _quota_key
+                run.tenant_id = _quota_tenant
+                async with get_async_session_factory()() as _quota_db:
+                    _reserve = await QuotaService(_quota_db).reserve(
+                        tenant_id=_quota_tenant,
+                        pool_key=db_agent.quota_pool,
+                        idempotency_key=_quota_key,
+                        agent_id=db_agent.id,
+                    )
+                    if _reserve != ReserveResult.RESERVED:
+                        # Nothing was taken under this key (or it belongs to another run): never give it back
+                        run.reserved_key = None
+                    if _reserve in (ReserveResult.EXHAUSTED, ReserveResult.UNASSIGNED, ReserveResult.INACTIVE):
+                        from src.services.billing.chat_billing_service import (
+                            BillingErrorCode,
+                            BillingValidationError,
+                            BillingValidationResult,
+                            ChatBillingService,
+                        )
+
+                        if _reserve == ReserveResult.INACTIVE:
+                            _quota_check = BillingValidationResult(
+                                is_valid=False,
+                                error=BillingValidationError(
+                                    error_code=BillingErrorCode.SUBSCRIPTION_INACTIVE,
+                                    message="This account's subscription is not active. Renew it to keep chatting.",
+                                ),
+                            )
+                        else:
+                            _quota_check = await ChatBillingService(_quota_db).validate_quota(
+                                _quota_tenant, db_agent.quota_pool
+                            )
+                        _quota_msg = (
+                            _quota_check.error.message
+                            if _quota_check and _quota_check.error
+                            else "You've used all the messages included in your plan this month."
+                        )
+                        if user_message_saved:
+                            await self.chat_service.mark_message_failed(
+                                message=user_message_saved, error="quota_exceeded", db=db
+                            )
+                        yield await generate_error_event(
+                            _quota_msg,
+                            error_code=_quota_check.error.error_code.value
+                            if _quota_check and _quota_check.error
+                            else "QUOTA_EXCEEDED",
+                            details=_quota_check.error.details if _quota_check and _quota_check.error else {},
+                        )
+                        return
+            except Exception as _quota_err:
+                # Fail open: a quota-bookkeeping error must not block the chat. The deduction
+                # task still counts the unit after the reply under the same key.
+                logger.warning(f"Quota reservation failed, continuing without it: {_quota_err}")
 
             # Expose JEV client in shared_state so tool discovery can use semantic search
             if load_result.jev_client is not None:
@@ -800,7 +929,23 @@ class ChatStreamService:
                 if assistant_message is None:
                     raise RuntimeError("The answer could not be saved. Please reload the conversation before retrying.")
 
+                # The reply is saved, so the message counts from here on. This must happen before the stream
+                # ends: a client that disconnects once it has the text must not get the message for free.
+                run.settled = True
+                self.chat_service.queue_credit_deduction(
+                    tenant_id=tenant_id or db_agent.tenant_id,
+                    agent_id=db_agent.id,
+                    conversation_id=conversation_uuid,
+                    message_id=assistant_message.id,
+                    agent_name=agent_name,
+                    model=agent.llm_client.config.model_name,
+                    content=assistant_content,
+                    quota_key=run.reserved_key,
+                )
+
             completion_sent = True
+            # The reply was delivered, with or without a saved conversation, so the reserved unit stays used
+            run.settled = True
             yield await generate_done_event(sources=retrieved_sources, metadata=metadata)
             final_content = "".join(state.assistant_chunks) if hasattr(state, "assistant_chunks") else ""
             await _track({"type": "done", "content": final_content[:5000], "metadata": metadata})
@@ -879,16 +1024,6 @@ class ChatStreamService:
                     finally:
                         if managed_db_session and stats_db is not None:
                             await asyncio.shield(stats_db.close())
-                    self.chat_service.queue_credit_deduction(
-                        tenant_id=tenant_id or db_agent.tenant_id,
-                        agent_id=db_agent.id,
-                        conversation_id=conversation_uuid,
-                        message_id=assistant_message.id,
-                        agent_name=agent_name,
-                        model=agent.llm_client.config.model_name,
-                        content=assistant_content,
-                    )
-
                     # Skip output delivery when called from the scheduler — scheduled_tasks.py
                     # handles it after the stream finishes to avoid double-sending.
                     if trigger_source != "scheduler":
@@ -956,13 +1091,27 @@ class ChatStreamService:
                 if managed_db_session and failure_db is not None:
                     await asyncio.shield(failure_db.close())
         finally:
-            if run_lease is not None:
-                try:
-                    await asyncio.shield(run_lease.release())
-                except Exception:
-                    logger.warning("Could not release run capacity; its bounded lease will expire")
-            if managed_db_session and db is not None:
-                await asyncio.shield(db.close())
+            # All cleanup runs as one shielded task: a client disconnect cancels this generator, and a cancellation
+            # raised by one step must not skip the others (the run lease and the database session).
+            async def _cleanup() -> None:
+                if run.reserved_key and not run.settled:
+                    try:
+                        async with get_async_session_factory()() as _release_db:
+                            await QuotaService(_release_db).release(run.tenant_id, run.reserved_key)
+                    except Exception:
+                        logger.warning("Could not release plan quota unit for a run that did not complete")
+                if run_lease is not None:
+                    try:
+                        await run_lease.release()
+                    except Exception:
+                        logger.warning("Could not release run capacity; its bounded lease will expire")
+                if managed_db_session and db is not None:
+                    try:
+                        await db.close()
+                    except Exception:
+                        logger.warning("Could not close the chat database session")
+
+            await asyncio.shield(_cleanup())
 
     async def _stream_workflow_agent(
         self,

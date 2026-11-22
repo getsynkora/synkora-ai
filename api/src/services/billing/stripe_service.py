@@ -685,9 +685,14 @@ class StripeService:
         )
         tenant_subscription = result.scalar_one_or_none()
 
+        # Only a regular renewal starts a new period. The first invoice is already handled at checkout, and
+        # proration or one-off invoices must not reset allowances or grant another month of credits.
+        if invoice.get("billing_reason") != "subscription_cycle":
+            return True
+
         if tenant_subscription:
             # Renew subscription and allocate credits
-            await self.subscription_service.renew_subscription(tenant_subscription.tenant_id)
+            await self.subscription_service.renew_subscription(tenant_subscription.id)
 
         return True
 
@@ -778,6 +783,9 @@ class StripeService:
                 tenant_subscription.stripe_subscription_id = subscription_id
                 tenant_subscription.stripe_customer_id = customer_id
                 tenant_subscription.status = SubscriptionStatus.ACTIVE
+                # A paid (re-)subscription replaces any earlier request to cancel at period end
+                tenant_subscription.cancel_at_period_end = False
+                tenant_subscription.cancelled_at = None
                 tenant_subscription.current_period_start = datetime.now(UTC)
                 # Set period end to 30 days from now (will be updated by Stripe webhook)
                 from datetime import timedelta

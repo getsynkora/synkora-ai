@@ -499,6 +499,30 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["agent-api-public"],
     ),
     RouteConfig(
+        module="src.controllers.agent_api_account",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-account"],
+    ),
+    RouteConfig(
+        module="src.controllers.agent_api_provisioning",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-provisioning"],
+    ),
+    RouteConfig(
+        module="src.controllers.agent_api_webhooks",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-webhooks"],
+    ),
+    RouteConfig(
+        module="src.controllers.agent_api_knowledge",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-knowledge"],
+    ),
+    RouteConfig(
         module="src.controllers.agent_domains",
         attribute="router",
         prefix="",

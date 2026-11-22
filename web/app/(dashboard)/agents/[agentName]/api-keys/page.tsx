@@ -563,27 +563,48 @@ function ApiKeyForm({
         />
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className={modalEyebrowClass}>Handoff access for this agent</legend>
-        {[
-          { value: 'handoff:read', label: 'Read handoffs and conversation history' },
-          { value: 'handoff:write', label: 'Reply, assign, resolve and reopen handoffs' },
-        ].map(({ value, label }) => (
-          <label key={value} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={formData.permissions.includes(value)}
-              onChange={(event) => setFormData({
-                ...formData,
-                permissions: event.target.checked
-                  ? [...formData.permissions, value]
-                  : formData.permissions.filter((permission) => permission !== value),
-              })}
-            />
-            {label}
-          </label>
-        ))}
-      </fieldset>
+      {[
+        {
+          legend: 'Handoff access for this agent',
+          options: [
+            { value: 'handoff:read', label: 'Read handoffs and conversation history' },
+            { value: 'handoff:write', label: 'Reply, assign, resolve and reopen handoffs' },
+          ],
+        },
+        {
+          legend: 'Knowledge access for this agent',
+          options: [
+            { value: 'knowledge:read', label: 'List knowledge bases, view and search documents' },
+            { value: 'knowledge:write', label: 'Create knowledge bases, upload, add, delete and reprocess documents' },
+          ],
+        },
+        {
+          legend: 'Account access',
+          options: [
+            { value: 'billing:read', label: 'Read plan, included messages and usage for this account' },
+            { value: 'webhooks:manage', label: 'Manage webhook endpoints for this account' },
+          ],
+        },
+      ].map(({ legend, options }) => (
+        <fieldset key={legend} className="space-y-2">
+          <legend className={modalEyebrowClass}>{legend}</legend>
+          {options.map(({ value, label }) => (
+            <label key={value} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.permissions.includes(value)}
+                onChange={(event) => setFormData({
+                  ...formData,
+                  permissions: event.target.checked
+                    ? [...formData.permissions, value]
+                    : formData.permissions.filter((permission) => permission !== value),
+                })}
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+      ))}
 
       <div className="space-y-3.5 rounded-[1.25rem] border border-line bg-white/55 p-4">
         <label className={modalEyebrowClass}>

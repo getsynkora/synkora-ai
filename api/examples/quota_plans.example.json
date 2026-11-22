@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Growth",
+    "tier": "STARTER",
+    "description": "Example plan: one monthly message allowance per agent type.",
+    "price_monthly": 299,
+    "price_yearly": 2868,
+    "credits_monthly": 0,
+    "quota_pools": [
+      { "key": "assistant", "label": "Assistant agent messages", "limit": 2500 },
+      { "key": "operations", "label": "Operations agent messages", "limit": 2500 },
+      { "key": "reporting", "label": "Reporting agent messages", "limit": 700 }
+    ],
+    "features": { "support_level": "email" }
+  },
+  {
+    "name": "Scale",
+    "tier": "PROFESSIONAL",
+    "description": "Example plan with larger allowances.",
+    "price_monthly": 990,
+    "price_yearly": 9504,
+    "credits_monthly": 0,
+    "quota_pools": [
+      { "key": "assistant", "label": "Assistant agent messages", "limit": 10000 },
+      { "key": "operations", "label": "Operations agent messages", "limit": 10000 },
+      { "key": "reporting", "label": "Reporting agent messages", "limit": 2800 }
+    ],
+    "features": { "support_level": "priority_email" }
+  }
+]

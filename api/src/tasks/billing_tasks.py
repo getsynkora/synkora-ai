@@ -97,6 +97,24 @@ def deduct_credits_async(self, tenant_id: str, user_id: str | None, agent_id: st
         async_session_factory = create_celery_async_session()
         async with async_session_factory() as db:
             try:
+                # Plans with quota pools meter messages per pool instead of spending credits
+                message_id = (metadata or {}).get("message_id")
+                if message_id:
+                    from src.models.agent import Agent
+                    from src.services.billing.quota_service import ConsumeResult, QuotaService
+
+                    agent_row = await db.get(Agent, agent_uuid)
+                    # The unit was normally reserved before the reply; the same key makes this a no-op.
+                    quota_result = await QuotaService(db).consume(
+                        tenant_id=tenant_uuid,
+                        pool_key=agent_row.quota_pool if agent_row else None,
+                        idempotency_key=metadata.get("quota_key") or f"msg_{message_id}",
+                        agent_id=agent_uuid,
+                    )
+                    if quota_result != ConsumeResult.NOT_METERED:
+                        logger.info(f"Quota unit {quota_result.value}: tenant={tenant_id}, message={message_id}")
+                        return None
+
                 # Initialize credit service
                 credit_service = CreditService(db)
 
@@ -443,6 +461,17 @@ def _find_missing_deductions(db) -> list:
             AND NOT EXISTS (
                 SELECT 1 FROM credit_transactions ct
                 WHERE ct.transaction_metadata::jsonb->>'message_id' = m.id::text
+            )
+            -- Plans that meter messages per pool never write a credit transaction for a message (the unit is
+            -- counted when the reply starts), so their messages are not missing deductions. Re-queuing them
+            -- would count each message a second time under a different key.
+            AND NOT EXISTS (
+                SELECT 1 FROM tenant_subscriptions ts
+                JOIN subscription_plans sp ON sp.id = ts.plan_id
+                WHERE ts.tenant_id = a.tenant_id
+                AND ts.status IN ('ACTIVE', 'TRIAL')
+                AND CASE WHEN jsonb_typeof(sp.quota_pools) = 'array'
+                    THEN jsonb_array_length(sp.quota_pools) > 0 ELSE false END
             )
             LIMIT 100
         """)

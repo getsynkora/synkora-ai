@@ -272,10 +272,11 @@ class TestStripeService:
         # Mock subscription service
         service.subscription_service.renew_subscription = AsyncMock()
 
-        inv_data = {"subscription": "sub_1"}
+        inv_data = {"subscription": "sub_1", "billing_reason": "subscription_cycle"}
         result = await service._handle_invoice_payment_succeeded(inv_data)
         assert result is True
-        service.subscription_service.renew_subscription.assert_called()
+        # Must be the subscription's own id, not the tenant id
+        service.subscription_service.renew_subscription.assert_called_once_with(mock_sub.id)
 
     async def test_handle_checkout_session_completed_topup(self, service):
         mock_topup = MagicMock(spec=CreditTopup)
@@ -325,6 +326,35 @@ class TestStripeService:
         assert result is True
         service.db.add.assert_called()  # New sub added
         service.subscription_service.renew_subscription.assert_called()
+
+    @pytest.mark.parametrize("reason", ["subscription_create", "subscription_update", "manual", None])
+    async def test_only_a_regular_renewal_invoice_starts_a_new_period(self, service, reason):
+        """Reproduces the first invoice and proration invoices renewing a second time (resetting allowances)."""
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = MagicMock()
+        service.db.execute.return_value = mock_result
+        service.subscription_service.renew_subscription = AsyncMock()
+
+        assert await service._handle_invoice_payment_succeeded({"subscription": "sub_1", "billing_reason": reason})
+        service.subscription_service.renew_subscription.assert_not_called()
+
+    async def test_resubscribing_clears_an_earlier_cancel_at_period_end(self, service):
+        """Reproduces a paid re-subscription being cancelled straight away by the stale flag."""
+        existing = MagicMock(cancel_at_period_end=True, cancelled_at="2026-11-01")
+        plan_result, sub_result = MagicMock(), MagicMock()
+        plan_result.scalar_one_or_none.return_value = MagicMock()
+        sub_result.scalar_one_or_none.return_value = existing
+        service.db.execute.side_effect = [plan_result, sub_result]
+        service.subscription_service.renew_subscription = AsyncMock()
+
+        session = {
+            "subscription": "sub_2",
+            "customer": "cus_1",
+            "metadata": {"type": "subscription", "tenant_id": str(uuid4()), "plan_id": str(uuid4())},
+        }
+        assert await service._handle_checkout_session_completed(session)
+        assert existing.cancel_at_period_end is False and existing.cancelled_at is None
+        service.subscription_service.renew_subscription.assert_awaited_once()
 
     async def test_handle_payment_intent_succeeded(self, service):
         mock_topup = MagicMock(spec=CreditTopup)

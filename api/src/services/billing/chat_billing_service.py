@@ -22,6 +22,7 @@ from src.services.billing.plan_restriction_service import (
     SubscriptionExpiredError,
     SubscriptionSuspendedError,
 )
+from src.services.billing.quota_service import QuotaService
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ class BillingErrorCode(StrEnum):
     SUBSCRIPTION_CANCELLED = "SUBSCRIPTION_CANCELLED"
     SUBSCRIPTION_SUSPENDED = "SUBSCRIPTION_SUSPENDED"
     INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS"
+    QUOTA_EXCEEDED = "QUOTA_EXCEEDED"
+    QUOTA_NOT_ASSIGNED = "QUOTA_NOT_ASSIGNED"
+    SUBSCRIPTION_INACTIVE = "SUBSCRIPTION_INACTIVE"
     NO_LLM_CONFIG = "NO_LLM_CONFIG"
     CONVERSATION_LIMIT_EXCEEDED = "CONVERSATION_LIMIT_EXCEEDED"
     MESSAGE_LIMIT_EXCEEDED = "MESSAGE_LIMIT_EXCEEDED"
@@ -133,6 +137,50 @@ class ChatBillingService:
             ),
         )
 
+    async def validate_quota(self, tenant_id: uuid.UUID, quota_pool: str | None) -> BillingValidationResult | None:
+        """
+        Check the agent's plan quota pool.
+
+        Returns None when the plan does not meter this pool (caller falls back to credits),
+        otherwise a result that is invalid once the pool is used up for this billing period.
+        """
+        quota = QuotaService(self.db)
+        available = await quota.unassigned_pool_keys(tenant_id, quota_pool)
+        if available is not None:
+            wanted = quota_pool or "default"
+            return BillingValidationResult(
+                is_valid=False,
+                error=BillingValidationError(
+                    error_code=BillingErrorCode.QUOTA_NOT_ASSIGNED,
+                    message=(
+                        f"This agent draws from the message allowance '{wanted}', which your plan does not include. "
+                        f"Assign the agent to one of: {', '.join(available)}."
+                    ),
+                    details={"pool": wanted, "available_pools": available},
+                ),
+            )
+        status = await quota.get_pool_status(tenant_id, quota_pool)
+        if status is None:
+            return None
+        if not status.exhausted:
+            return BillingValidationResult(is_valid=True)
+        return BillingValidationResult(
+            is_valid=False,
+            error=BillingValidationError(
+                error_code=BillingErrorCode.QUOTA_EXCEEDED,
+                message=(
+                    f"You've used all {status.limit} {status.label} included in your plan this month. "
+                    f"Upgrade your plan or wait until {status.period_end:%b %d} when your allowance resets."
+                ),
+                details={
+                    "pool": status.key,
+                    "limit": status.limit,
+                    "used": status.used,
+                    "resets_at": status.period_end.isoformat(),
+                },
+            ),
+        )
+
     async def validate_conversation_limit(self, tenant_id: uuid.UUID, account_id: uuid.UUID) -> BillingValidationResult:
         """
         Validate that user hasn't exceeded conversation limit.
@@ -188,6 +236,7 @@ class ChatBillingService:
         tenant_id: uuid.UUID,
         model_name: str,
         conversation_id: uuid.UUID | None = None,
+        quota_pool: str | None = None,
     ) -> BillingValidationResult:
         """
         Validate all billing requirements for a chat request.
@@ -210,8 +259,10 @@ class ChatBillingService:
         if not result.is_valid:
             return result
 
-        # 2. Check credit availability
-        result = await self.validate_credits(tenant_id, model_name)
+        # 2. Check the plan's quota pool for this agent; plans without pools use shared credits
+        result = await self.validate_quota(tenant_id, quota_pool)
+        if result is None:
+            result = await self.validate_credits(tenant_id, model_name)
         if not result.is_valid:
             return result
 
