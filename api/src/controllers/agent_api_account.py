@@ -11,6 +11,7 @@ All data is for the key's own tenant; there is no way to ask about another tenan
 import logging
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -151,6 +152,17 @@ def _serialize_subscription(subscription: Any) -> SubscriptionInfo:
     )
 
 
+async def build_plan_response(db: AsyncSession, tenant_id: UUID) -> CurrentPlanResponse:
+    """A tenant's current plan and subscription. No subscription means the Free plan, with ``subscription: null``."""
+    restrictions = PlanRestrictionService(db)
+    plan = await restrictions.get_tenant_plan(tenant_id)
+    subscription = await restrictions.get_tenant_subscription(tenant_id)
+    return CurrentPlanResponse(
+        plan=serialize_plan(plan) if plan else None,
+        subscription=_serialize_subscription(subscription) if subscription else None,
+    )
+
+
 @router.get("/plan", response_model=CurrentPlanResponse)
 async def get_current_plan(
     api_key: AgentApiKey = Depends(require_permission("billing:read")),
@@ -162,34 +174,16 @@ async def get_current_plan(
     A tenant with no active subscription is shown on the Free plan with ``subscription: null``.
     Requires permission: billing:read
     """
-    restrictions = PlanRestrictionService(db)
-    plan = await restrictions.get_tenant_plan(api_key.tenant_id)
-    subscription = await restrictions.get_tenant_subscription(api_key.tenant_id)
-    return CurrentPlanResponse(
-        plan=serialize_plan(plan) if plan else None,
-        subscription=_serialize_subscription(subscription) if subscription else None,
-    )
+    return await build_plan_response(db, api_key.tenant_id)
 
 
-@router.get("/usage", response_model=UsageResponse)
-async def get_usage(
-    api_key: AgentApiKey = Depends(require_permission("billing:read")),
-    db: AsyncSession = Depends(get_async_db),
-):
-    """
-    How much of the plan has been used in the current billing period.
-
-    - ``pools``: per-pool message usage, for plans that include message allowances.
-    - ``credits``: the shared credit balance, for plans that do not use pools.
-    - ``resources``: counts against plan limits (agents, team members, knowledge bases, ...).
-
-    Requires permission: billing:read
-    """
-    pool_statuses = await QuotaService(db).list_pool_statuses(api_key.tenant_id)
+async def build_usage_response(db: AsyncSession, tenant_id: UUID) -> UsageResponse:
+    """Usage in the tenant's current billing period: message pools or credits, plus resource counts."""
+    pool_statuses = await QuotaService(db).list_pool_statuses(tenant_id)
 
     credits: CreditsUsage | None = None
     if not pool_statuses:
-        balance = await CreditService(db).get_balance(api_key.tenant_id)
+        balance = await CreditService(db).get_balance(tenant_id)
         credits = CreditsUsage(
             total=balance.total_credits if balance else 0,
             used=balance.used_credits if balance else 0,
@@ -197,7 +191,7 @@ async def get_usage(
             last_reset_at=balance.last_reset_at if balance else None,
         )
 
-    stats = await PlanRestrictionService(db).get_usage_stats(api_key.tenant_id)
+    stats = await PlanRestrictionService(db).get_usage_stats(tenant_id)
 
     return UsageResponse(
         metering="quota_pools" if pool_statuses else "credits",
@@ -218,6 +212,23 @@ async def get_usage(
         credits=credits,
         resources={name: ResourceUsage(**values) for name, values in (stats.get("usage") or {}).items()},
     )
+
+
+@router.get("/usage", response_model=UsageResponse)
+async def get_usage(
+    api_key: AgentApiKey = Depends(require_permission("billing:read")),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    How much of the plan has been used in the current billing period.
+
+    - ``pools``: per-pool message usage, for plans that include message allowances.
+    - ``credits``: the shared credit balance, for plans that do not use pools.
+    - ``resources``: counts against plan limits (agents, team members, knowledge bases, ...).
+
+    Requires permission: billing:read
+    """
+    return await build_usage_response(db, api_key.tenant_id)
 
 
 @router.get("/plans", response_model=list[PlanInfo])

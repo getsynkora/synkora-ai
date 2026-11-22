@@ -505,6 +505,12 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["agent-api-account"],
     ),
     RouteConfig(
+        module="src.controllers.agent_api_provisioning",
+        attribute="router",
+        prefix="",
+        tags=["agent-api-provisioning"],
+    ),
+    RouteConfig(
         module="src.controllers.agent_domains",
         attribute="router",
         prefix="",

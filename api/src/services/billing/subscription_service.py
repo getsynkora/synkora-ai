@@ -91,14 +91,15 @@ class SubscriptionService:
         await self.db.commit()
         await self.db.refresh(subscription)
 
-        # Add credits to tenant's balance
-        await self.credit_service.add_credits(
-            tenant_id=tenant_id,
-            amount=plan.credits_monthly,
-            transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
-            description=f"Monthly credits for {plan.name} plan",
-            reference_id=subscription.id,
-        )
+        # Add credits to tenant's balance (plans that meter messages per pool grant none)
+        if plan.credits_monthly:
+            await self.credit_service.add_credits(
+                tenant_id=tenant_id,
+                amount=plan.credits_monthly,
+                transaction_type=TransactionType.SUBSCRIPTION_ALLOCATION,
+                description=f"Monthly credits for {plan.name} plan",
+                reference_id=subscription.id,
+            )
 
         return subscription
 
