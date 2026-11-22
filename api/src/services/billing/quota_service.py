@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.quota_usage import QuotaUsage, QuotaUsageEvent
 from src.models.subscription_plan import SubscriptionPlan
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
+from src.services.outbound_webhooks import EVENT_USAGE_THRESHOLD, USAGE_THRESHOLDS, emit_event
 
 logger = logging.getLogger(__name__)
 
@@ -151,12 +152,33 @@ class QuotaService:
                 statuses.append(status)
         return statuses
 
+    async def _notify_thresholds(self, tenant_id: uuid.UUID, pool: dict, before: int, after: int) -> None:
+        """Queue a ``usage.threshold`` event for each of 80% and 100% that this change crossed."""
+        limit = int(pool["limit"])
+        if limit <= 0:
+            return
+        for percent in USAGE_THRESHOLDS:
+            if before * 100 < percent * limit <= after * 100:
+                await emit_event(
+                    self.db,
+                    tenant_id,
+                    EVENT_USAGE_THRESHOLD,
+                    {
+                        "pool": pool["key"],
+                        "label": pool.get("label") or pool["key"],
+                        "threshold_percent": percent,
+                        "used": after,
+                        "limit": limit,
+                    },
+                )
+
     async def consume(
         self,
         tenant_id: uuid.UUID,
         pool_key: str | None,
         idempotency_key: str,
         amount: int = 1,
+        agent_id: uuid.UUID | None = None,
     ) -> ConsumeResult:
         """
         Count ``amount`` units against the pool, once per ``idempotency_key``.
@@ -181,6 +203,7 @@ class QuotaService:
                 idempotency_key=idempotency_key,
                 tenant_id=tenant_id,
                 pool_key=key,
+                agent_id=agent_id,
                 period_start=period_start,
                 amount=amount,
             )
@@ -210,6 +233,7 @@ class QuotaService:
         counter.used = (counter.used or 0) + amount
         used_now = counter.used
         await self.db.commit()
+        await self._notify_thresholds(tenant_id, pool, used_now - amount, used_now)
 
         limit = int(pool["limit"])
         if used_now > limit:
@@ -223,6 +247,7 @@ class QuotaService:
         pool_key: str | None,
         idempotency_key: str,
         amount: int = 1,
+        agent_id: uuid.UUID | None = None,
     ) -> ReserveResult:
         """
         Take ``amount`` units before the work starts, never going past the pool's limit.
@@ -249,6 +274,7 @@ class QuotaService:
                 idempotency_key=idempotency_key,
                 tenant_id=tenant_id,
                 pool_key=key,
+                agent_id=agent_id,
                 period_start=period_start,
                 amount=amount,
             )
@@ -275,11 +301,13 @@ class QuotaService:
             .values(used=QuotaUsage.used + amount)
             .returning(QuotaUsage.used)
         )
-        if taken.scalar_one_or_none() is None:
+        used_now = taken.scalar_one_or_none()
+        if used_now is None:
             await self.db.rollback()  # also discards the event row inserted above
             return ReserveResult.EXHAUSTED
 
         await self.db.commit()
+        await self._notify_thresholds(tenant_id, pool, used_now - amount, used_now)
         return ReserveResult.RESERVED
 
     async def release(self, tenant_id: uuid.UUID, idempotency_key: str) -> bool:

@@ -7,7 +7,7 @@ Usage:
     python enable_tenant_provisioning.py <tenant_id> --agent <agent_id>    # enable and print a manager API key
     python enable_tenant_provisioning.py <tenant_id> --disable
 
-The manager key has the tenants:manage and billing:read permissions. It is printed once; store it.
+The manager key has the tenants:manage, billing:read and webhooks:manage permissions. It is printed once; store it.
 See api/src/controllers/agent_api_provisioning.py for the endpoints it unlocks.
 """
 
@@ -48,7 +48,7 @@ async def main(tenant_id: uuid.UUID, agent_id: uuid.UUID | None, disable: bool) 
                 agent_id=agent.id,
                 tenant_id=tenant.id,
                 name="Tenant management",
-                permissions=["tenants:manage", "billing:read"],
+                permissions=["tenants:manage", "billing:read", "webhooks:manage"],
             )
             print(f"Manager API key (shown once): {plain}")
     return 0

@@ -24,8 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.controllers.agent_api_account import (
     CurrentPlanResponse,
+    UsageHistoryResponse,
     UsageResponse,
     build_plan_response,
+    build_usage_history,
     build_usage_response,
 )
 from src.core.database import get_async_db
@@ -272,6 +274,20 @@ async def get_tenant_usage(tenant_id: UUID, service: TenantProvisioningService =
     except ProvisioningError as err:
         raise _http(err) from err
     return await build_usage_response(service.db, tenant.id)
+
+
+@router.get("/{tenant_id}/usage/history", response_model=UsageHistoryResponse)
+async def get_tenant_usage_history(
+    tenant_id: UUID,
+    days: int = Query(30, ge=1, le=92),
+    service: TenantProvisioningService = Depends(get_provisioning_service),
+):
+    """A customer's messages per day, pool and agent. Requires permission: tenants:manage"""
+    try:
+        tenant = await service.get_managed(tenant_id)
+    except ProvisioningError as err:
+        raise _http(err) from err
+    return await build_usage_history(service.db, tenant.id, days)
 
 
 # ---- agents ------------------------------------------------------------------------------------

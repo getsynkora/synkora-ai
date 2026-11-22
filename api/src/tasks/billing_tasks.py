@@ -109,6 +109,7 @@ def deduct_credits_async(self, tenant_id: str, user_id: str | None, agent_id: st
                         tenant_id=tenant_uuid,
                         pool_key=agent_row.quota_pool if agent_row else None,
                         idempotency_key=metadata.get("quota_key") or f"msg_{message_id}",
+                        agent_id=agent_uuid,
                     )
                     if quota_result != ConsumeResult.NOT_METERED:
                         logger.info(f"Quota unit {quota_result.value}: tenant={tenant_id}, message={message_id}")

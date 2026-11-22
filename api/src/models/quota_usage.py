@@ -46,5 +46,11 @@ class QuotaUsageEvent(BaseModel):
         comment="Tenant ID",
     )
     pool_key = Column(String(64), nullable=False, comment="Quota pool slug")
+    agent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("agents.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Agent whose message used the unit",
+    )
     period_start = Column(sa.DateTime(timezone=True), nullable=False, comment="Billing period the unit counted in")
     amount = Column(Integer, nullable=False, default=1, comment="Units consumed")

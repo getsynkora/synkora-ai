@@ -134,6 +134,7 @@ from .user_oauth_token import UserOAuthToken
 from .video_generation_job import VideoGenerationJob, VideoJobStatus
 from .voice_api_key import VoiceApiKey
 from .voice_usage import VoiceUsage
+from .webhook_endpoint import WebhookEndpoint
 from .whatsapp_bot import WhatsAppBot
 from .widget_agent_route import WidgetAgentRoute
 from .widget_push_subscription import WidgetPushSubscription
@@ -296,6 +297,7 @@ __all__ = [
     "CreditBalance",
     "QuotaUsage",
     "QuotaUsageEvent",
+    "WebhookEndpoint",
     "CreditTransaction",
     "TransactionType",
     "AgentPricing",

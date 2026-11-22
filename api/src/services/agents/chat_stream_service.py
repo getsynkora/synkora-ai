@@ -350,6 +350,7 @@ class ChatStreamService:
                         tenant_id=_quota_tenant,
                         pool_key=db_agent.quota_pool,
                         idempotency_key=_quota_key,
+                        agent_id=db_agent.id,
                     )
                     if _reserve == ReserveResult.EXHAUSTED:
                         from src.services.billing.chat_billing_service import ChatBillingService

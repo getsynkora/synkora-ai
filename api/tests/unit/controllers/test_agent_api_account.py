@@ -193,3 +193,51 @@ class TestBillingReadPermission:
     def test_only_billing_read_or_wildcard_grants_access(self, permissions, allowed):
         key = MagicMock(permissions=permissions)
         assert AgentApiKeyService.check_permission(key, "billing:read") is allowed
+
+
+class TestUsageHistory:
+    def _rows(self, rows):
+        result = MagicMock()
+        result.all.return_value = rows
+        return result
+
+    async def test_groups_messages_by_day_pool_and_agent(self):
+        agent = uuid4()
+        db = AsyncMock()
+        db.execute.return_value = self._rows(
+            [
+                (datetime(2026, 11, 3, tzinfo=UTC), "assistant", agent, 7),
+                (datetime(2026, 11, 3, tzinfo=UTC), "operations", None, 2),
+                (datetime(2026, 11, 4, tzinfo=UTC), "assistant", agent, 5),
+            ]
+        )
+        history = await account.build_usage_history(db, TENANT, 30)
+
+        assert history.total == 14
+        assert [(p.date.isoformat(), p.pool_key, p.messages) for p in history.series] == [
+            ("2026-11-03", "assistant", 7),
+            ("2026-11-03", "operations", 2),
+            ("2026-11-04", "assistant", 5),
+        ]
+        assert history.series[0].agent_id == str(agent) and history.series[1].agent_id is None
+        assert (history.to_date - history.from_date).days == 29
+
+    async def test_only_this_tenants_events_in_the_window_are_read(self):
+        db = AsyncMock()
+        db.execute.return_value = self._rows([])
+        await account.build_usage_history(db, TENANT, 7)
+        compiled = db.execute.call_args[0][0].compile()
+        assert TENANT in compiled.params.values()
+        assert "quota_usage_events" in str(compiled) and "created_at" in str(compiled)
+
+    def test_endpoint_returns_the_history_and_needs_billing_read(self, client, auth):
+        empty = account.UsageHistoryResponse(from_date=START.date(), to_date=END.date(), total=0, series=[])
+        with patch.object(account, "build_usage_history", AsyncMock(return_value=empty)) as build:
+            response = client.get("/api/v1/public/account/usage/history?days=14")
+        assert response.status_code == 200 and auth == ["billing:read"]
+        build.assert_awaited_once()
+        assert build.await_args.args[1:] == (TENANT, 14)
+
+    @pytest.mark.parametrize("days", [0, 93, -1])
+    def test_days_must_be_between_1_and_92(self, client, auth, days):
+        assert client.get(f"/api/v1/public/account/usage/history?days={days}").status_code == 422

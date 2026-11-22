@@ -121,6 +121,14 @@ class SubscriptionService:
             subscription.cancelled_at = datetime.now(UTC)
             await self.db.commit()
             await self.db.refresh(subscription)
+            from src.services.outbound_webhooks import EVENT_SUBSCRIPTION_UPDATED, emit_event, subscription_event_data
+
+            await emit_event(
+                self.db,
+                subscription.tenant_id,
+                EVENT_SUBSCRIPTION_UPDATED,
+                subscription_event_data(subscription, plan.name),
+            )
             return subscription
 
         # Update billing period

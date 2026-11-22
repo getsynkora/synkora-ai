@@ -573,7 +573,10 @@ function ApiKeyForm({
         },
         {
           legend: 'Account access',
-          options: [{ value: 'billing:read', label: 'Read plan, included messages and usage for this account' }],
+          options: [
+            { value: 'billing:read', label: 'Read plan, included messages and usage for this account' },
+            { value: 'webhooks:manage', label: 'Manage webhook endpoints for this account' },
+          ],
         },
       ].map(({ legend, options }) => (
         <fieldset key={legend} className="space-y-2">

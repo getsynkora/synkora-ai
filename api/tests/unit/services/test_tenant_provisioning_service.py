@@ -219,3 +219,28 @@ class TestSetSubscription:
             await service.set_subscription(MagicMock(id=uuid4()), plan="Scale")
         upgrade.assert_not_called()
         assert sub.plan_id == new_plan.id
+
+
+class TestSubscriptionEvents:
+    async def test_a_change_is_announced_to_webhook_endpoints(self, service):
+        sub = MagicMock(
+            id=uuid4(),
+            plan_id=uuid4(),
+            status=SubscriptionStatus.ACTIVE,
+            current_period_start=None,
+            current_period_end=None,
+            cancel_at_period_end=False,
+            cancelled_at=None,
+        )
+        tenant = MagicMock(id=uuid4())
+        with (
+            patch.object(service, "_latest_subscription", AsyncMock(return_value=sub)),
+            patch.object(service.subscriptions, "get_plan", AsyncMock(return_value=MagicMock(plan_name="x"))),
+            patch.object(svc, "emit_event", AsyncMock()) as emit,
+        ):
+            await service.set_subscription(tenant, status="SUSPENDED")
+
+        emit.assert_awaited_once()
+        assert emit.await_args.args[1] == tenant.id
+        assert emit.await_args.args[2] == "subscription.updated"
+        assert emit.await_args.args[3]["status"] == "SUSPENDED"

@@ -33,6 +33,7 @@ from src.services.agent_api.api_key_service import AgentApiKeyService
 from src.services.agents.security import encrypt_value
 from src.services.billing.plan_restriction_service import PlanRestrictionError, PlanRestrictionService
 from src.services.billing.subscription_service import SubscriptionService
+from src.services.outbound_webhooks import EVENT_SUBSCRIPTION_UPDATED, emit_event, subscription_event_data
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +167,19 @@ class TenantProvisioningService:
         if start and end and end <= start:
             raise ProvisioningError("period_end must be after period_start")
 
+    async def _announce(self, tenant: Tenant, subscription: TenantSubscription) -> None:
+        """Tell registered webhook endpoints that this customer's subscription changed. Best effort."""
+        try:
+            plan = await self.subscriptions.get_plan(subscription.plan_id)
+            await emit_event(
+                self.db,
+                tenant.id,
+                EVENT_SUBSCRIPTION_UPDATED,
+                subscription_event_data(subscription, plan.name if plan else None),
+            )
+        except Exception:
+            logger.warning("Could not announce subscription change for tenant %s", tenant.id, exc_info=True)
+
     async def _start_subscription(
         self,
         tenant: Tenant,
@@ -182,6 +196,7 @@ class TenantProvisioningService:
         self._apply_period(subscription, period_start, period_end)
         await self.db.commit()
         await self.db.refresh(subscription)
+        await self._announce(tenant, subscription)
         return subscription
 
     @staticmethod
@@ -258,6 +273,7 @@ class TenantProvisioningService:
                 subscription.cancelled_at = None
         await self.db.commit()
         await self.db.refresh(subscription)
+        await self._announce(tenant, subscription)
         return subscription
 
     # ---- agents and keys -----------------------------------------------------------------------

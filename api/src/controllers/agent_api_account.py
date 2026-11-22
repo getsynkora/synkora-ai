@@ -9,17 +9,19 @@ All data is for the key's own tenant; there is no way to ask about another tenan
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
 from src.middleware.agent_api_auth import require_permission
 from src.models.agent_api_key import AgentApiKey
+from src.models.quota_usage import QuotaUsageEvent
 from src.models.subscription_plan import SubscriptionPlan
 from src.services.billing.credit_service import CreditService
 from src.services.billing.plan_restriction_service import PlanRestrictionService
@@ -229,6 +231,57 @@ async def get_usage(
     Requires permission: billing:read
     """
     return await build_usage_response(db, api_key.tenant_id)
+
+
+class UsageHistoryPoint(BaseModel):
+    date: date
+    pool_key: str
+    agent_id: str | None
+    messages: int
+
+
+class UsageHistoryResponse(BaseModel):
+    from_date: date
+    to_date: date
+    total: int
+    # One row per day, pool and agent. Days with no messages have no row.
+    series: list[UsageHistoryPoint]
+
+
+async def build_usage_history(db: AsyncSession, tenant_id: UUID, days: int) -> UsageHistoryResponse:
+    """Messages counted against message pools, per day, pool and agent, for the last ``days`` days."""
+    today = datetime.now(UTC).date()
+    since = datetime.combine(today - timedelta(days=days - 1), time.min, tzinfo=UTC)
+    day = func.date_trunc("day", QuotaUsageEvent.created_at)
+    rows = await db.execute(
+        select(day, QuotaUsageEvent.pool_key, QuotaUsageEvent.agent_id, func.sum(QuotaUsageEvent.amount))
+        .where(QuotaUsageEvent.tenant_id == tenant_id, QuotaUsageEvent.created_at >= since)
+        .group_by(day, QuotaUsageEvent.pool_key, QuotaUsageEvent.agent_id)
+        .order_by(day, QuotaUsageEvent.pool_key)
+    )
+    series = [
+        UsageHistoryPoint(
+            date=row[0].date(), pool_key=row[1], agent_id=str(row[2]) if row[2] else None, messages=int(row[3] or 0)
+        )
+        for row in rows.all()
+    ]
+    return UsageHistoryResponse(
+        from_date=since.date(), to_date=today, total=sum(p.messages for p in series), series=series
+    )
+
+
+@router.get("/usage/history", response_model=UsageHistoryResponse)
+async def get_usage_history(
+    days: int = Query(30, ge=1, le=92, description="How many days back, including today"),
+    api_key: AgentApiKey = Depends(require_permission("billing:read")),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Messages per day, pool and agent, for charts. Only plans that meter messages per pool record history.
+
+    Requires permission: billing:read
+    """
+    return await build_usage_history(db, api_key.tenant_id, days)
 
 
 @router.get("/plans", response_model=list[PlanInfo])

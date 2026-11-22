@@ -45,6 +45,7 @@ celery_app = Celery(
         "src.tasks.agent_tasks",  # Webhook event processing
         "src.tasks.email_tasks",  # Email sending
         "src.tasks.billing_tasks",  # Credit deduction and reconciliation
+        "src.tasks.webhook_tasks",  # Outbound webhook delivery
         "src.tasks.workspace_tasks",  # Workspace cleanup
         "src.tasks.data_source_tasks",  # Data source ingestion
         "src.tasks.document_tasks",  # Document processing
