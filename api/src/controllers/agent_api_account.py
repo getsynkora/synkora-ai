@@ -72,6 +72,7 @@ class SubscriptionInfo(BaseModel):
     current_period_start: datetime | None
     current_period_end: datetime | None
     trial_end: datetime | None
+    cancel_at_period_end: bool
     cancelled_at: datetime | None
     auto_renew: bool | None
 
@@ -144,6 +145,7 @@ def _serialize_subscription(subscription: Any) -> SubscriptionInfo:
         current_period_start=subscription.current_period_start,
         current_period_end=subscription.current_period_end,
         trial_end=subscription.trial_end,
+        cancel_at_period_end=bool(subscription.cancel_at_period_end),
         cancelled_at=subscription.cancelled_at,
         auto_renew=subscription.auto_renew,
     )

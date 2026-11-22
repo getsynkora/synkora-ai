@@ -540,7 +540,7 @@ async def get_active_subscription(
         status=subscription.status,
         current_period_start=subscription.current_period_start,
         current_period_end=subscription.current_period_end,
-        cancel_at_period_end=subscription.cancelled_at is not None,
+        cancel_at_period_end=bool(subscription.cancel_at_period_end),
     )
 
     try:
@@ -824,6 +824,7 @@ async def cancel_subscription(
 
     # Update local subscription status
     await subscription_service.cancel_subscription(subscription_id=subscription.id, immediate=immediate)
+    await _invalidate_billing_cache_for_tenant(str(tenant_id))
 
     return {"status": "cancelled", "immediate": immediate}
 

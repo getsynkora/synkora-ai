@@ -42,6 +42,7 @@ class TestSubscriptionService:
         sub.tenant_id = uuid4()
         sub.plan_id = mock_plan.id
         sub.status = SubscriptionStatus.ACTIVE
+        sub.cancel_at_period_end = False
         sub.current_period_start = datetime.now(UTC)
         sub.current_period_end = datetime.now(UTC) + timedelta(days=30)
         return sub
@@ -184,6 +185,25 @@ class TestSubscriptionService:
             await service.renew_subscription(mock_subscription.id)
 
             service.credit_service.add_credits.assert_not_called()
+
+    async def test_renew_subscription_ends_it_when_cancel_at_period_end_is_set(
+        self, service, mock_db, mock_plan, mock_subscription
+    ):
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_subscription
+        mock_db.execute.return_value = mock_result
+        mock_subscription.cancel_at_period_end = True
+
+        with patch.object(service, "get_plan", AsyncMock(return_value=mock_plan)):
+            service.credit_service = AsyncMock()
+
+            result = await service.renew_subscription(mock_subscription.id)
+
+        assert result.status == SubscriptionStatus.CANCELLED
+        assert result.cancelled_at is not None
+        # No new period and no new credits for a subscription the tenant asked to end
+        service.credit_service.apply_monthly_rollover.assert_not_called()
+        service.credit_service.add_credits.assert_not_called()
 
     async def test_renew_subscription_not_found(self, service, mock_db):
         mock_result = MagicMock()

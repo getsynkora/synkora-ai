@@ -7,7 +7,7 @@ This module defines the tenant subscription model for tracking active subscripti
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, false
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
@@ -133,6 +133,14 @@ class TenantSubscription(BaseModel):
         nullable=True,
         index=True,
         comment="Paddle customer ID",
+    )
+
+    cancel_at_period_end = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+        comment="Subscription ends at the end of the current period instead of renewing",
     )
 
     auto_renew = Column(

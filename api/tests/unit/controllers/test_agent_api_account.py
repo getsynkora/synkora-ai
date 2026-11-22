@@ -91,6 +91,7 @@ class TestEndpoints:
             current_period_start=START,
             current_period_end=END,
             trial_end=None,
+            cancel_at_period_end=True,
             cancelled_at=None,
             auto_renew=True,
         )
@@ -104,6 +105,7 @@ class TestEndpoints:
         assert body["plan"]["name"] == "Growth"
         assert body["subscription"]["status"] == "ACTIVE"
         assert body["subscription"]["auto_renew"] is True
+        assert body["subscription"]["cancel_at_period_end"] is True
         assert auth == ["billing:read"]
         service.return_value.get_tenant_plan.assert_awaited_once_with(TENANT)
 

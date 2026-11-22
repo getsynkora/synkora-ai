@@ -114,6 +114,14 @@ class SubscriptionService:
         if not plan:
             raise ValueError(f"Plan {subscription.plan_id} not found")
 
+        # The tenant asked to cancel at the end of the period: end it instead of renewing
+        if subscription.cancel_at_period_end:
+            subscription.status = SubscriptionStatus.CANCELLED
+            subscription.cancelled_at = datetime.now(UTC)
+            await self.db.commit()
+            await self.db.refresh(subscription)
+            return subscription
+
         # Update billing period
         now = datetime.now(UTC)
         subscription.current_period_start = now
