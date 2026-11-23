@@ -35,6 +35,7 @@ from src.middleware.agent_api_auth import AgentApiAuthMiddleware
 from src.models.agent_api_key import AgentApiKey
 from src.models.tenant import Tenant
 from src.services.activity.api_audit import audit_api_action
+from src.services.agent_api.api_key_service import is_platform_key
 from src.services.tenant_provisioning_service import (
     ProvisioningError,
     TenantProvisioningService,
@@ -51,7 +52,9 @@ async def get_provisioning_service(
     """Authenticate the caller and return a service limited to the tenants it manages."""
     api_key = await AgentApiAuthMiddleware.authenticate_request(request, "tenants:manage")
     manager = await db.get(Tenant, api_key.tenant_id)
-    if manager is None or not manager.can_manage_tenants:
+    # A platform key (created by the tenant's owner or admin on the Platform keys page) is enough on its own. An agent
+    # key with tenants:manage only works while an operator has enabled the tenant (enable_tenant_provisioning.py).
+    if manager is None or not (is_platform_key(api_key) or manager.can_manage_tenants):
         raise HTTPException(status_code=403, detail="This tenant is not enabled to manage other tenants")
     service = TenantProvisioningService(db, manager)
     service.actor_key = api_key  # who acted, for the audit trail

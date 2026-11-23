@@ -100,7 +100,7 @@ async def list_api_keys(
 
     Optionally filter by agent_id (UUID) or agent name.
     """
-    query = select(AgentApiKey).filter(AgentApiKey.tenant_id == tenant_id)
+    query = select(AgentApiKey).filter(AgentApiKey.tenant_id == tenant_id, AgentApiKey.agent_id.is_not(None))
 
     if agent_id:
         # Try to parse as UUID first
@@ -144,6 +144,8 @@ async def get_api_key(
         select(AgentApiKey).filter(
             AgentApiKey.id == key_id,
             AgentApiKey.tenant_id == tenant_id,
+            # platform keys are managed on the Platform keys page (owners and admins only)
+            AgentApiKey.agent_id.is_not(None),
         )
     )
     api_key = result.scalar_one_or_none()
@@ -170,6 +172,8 @@ async def update_api_key(
         select(AgentApiKey).filter(
             AgentApiKey.id == key_id,
             AgentApiKey.tenant_id == tenant_id,
+            # platform keys are managed on the Platform keys page (owners and admins only)
+            AgentApiKey.agent_id.is_not(None),
         )
     )
     api_key = result.scalar_one_or_none()
@@ -225,6 +229,8 @@ async def delete_api_key(
         select(AgentApiKey).filter(
             AgentApiKey.id == key_id,
             AgentApiKey.tenant_id == tenant_id,
+            # platform keys are managed on the Platform keys page (owners and admins only)
+            AgentApiKey.agent_id.is_not(None),
         )
     )
     api_key = result.scalar_one_or_none()
@@ -259,6 +265,8 @@ async def regenerate_api_key(
         select(AgentApiKey).filter(
             AgentApiKey.id == key_id,
             AgentApiKey.tenant_id == tenant_id,
+            # platform keys are managed on the Platform keys page (owners and admins only)
+            AgentApiKey.agent_id.is_not(None),
         )
     )
     api_key = result.scalar_one_or_none()
@@ -315,6 +323,8 @@ async def get_api_key_usage(
         select(AgentApiKey).filter(
             AgentApiKey.id == key_id,
             AgentApiKey.tenant_id == tenant_id,
+            # platform keys are managed on the Platform keys page (owners and admins only)
+            AgentApiKey.agent_id.is_not(None),
         )
     )
     api_key = result.scalar_one_or_none()

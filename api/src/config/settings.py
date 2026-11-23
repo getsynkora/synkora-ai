@@ -75,6 +75,13 @@ class AppConfig(BaseSettings):
         description="Public-facing base URL for A2A same-instance routing and SSRF bypass.",
     )
 
+    max_managed_tenants_default: int = Field(
+        default=50,
+        validation_alias="MAX_MANAGED_TENANTS_DEFAULT",
+        description="Customer workspaces a tenant may create with a platform key, unless its plan sets "
+        "features.max_managed_tenants.",
+    )
+
     agent_lens_enabled: bool = Field(
         default=True,
         validation_alias="AGENT_LENS_ENABLED",

@@ -63,9 +63,30 @@ def _get_redis_client():
 # Scopes that only ever grant their own exact permissions (see check_permission)
 SCOPED_PERMISSION_PREFIXES = frozenset({"billing", "knowledge", "webhooks", "tenants", "handoff"})
 
-# Permissions that can never be requested through the dashboard or the key API. Tenant management keys are only
-# issued by a platform operator (enable_tenant_provisioning.py).
+# Permissions an agent key can never be given through the dashboard or the key API. Tenant management is only on
+# platform keys, which a tenant owner or admin creates on the Platform keys page (or an operator with
+# enable_tenant_provisioning.py).
 OPERATOR_ONLY_PERMISSION_PREFIXES = frozenset({"tenants"})
+
+# A platform key belongs to the tenant, not to an agent (agent_id is null). It can only use these platform APIs:
+# never chat, conversations, knowledge or handoffs, which all act on one agent.
+PLATFORM_KEY_PERMISSIONS = frozenset({"tenants:manage", "billing:read", "webhooks:manage"})
+
+
+def is_platform_key(api_key) -> bool:
+    return getattr(api_key, "agent_id", None) is None
+
+
+def validate_platform_permissions(permissions: list[str]) -> list[str]:
+    """Check the permissions asked for on a platform key. Raises ValueError with the reason."""
+    if not permissions:
+        raise ValueError("A platform key needs at least one permission")
+    unknown = sorted({p for p in permissions if p not in PLATFORM_KEY_PERMISSIONS}, key=str)
+    if unknown:
+        raise ValueError(f"Platform keys can only have {', '.join(sorted(PLATFORM_KEY_PERMISSIONS))}; not {unknown}")
+    return sorted(set(permissions))
+
+
 _PERMISSION_PATTERN = re.compile(r"\*|[a-z0-9_-]{1,40}(:[a-z0-9_-]{1,40})?")
 MAX_PERMISSIONS_PER_KEY = 20
 
@@ -386,6 +407,11 @@ class AgentApiKeyService:
         permissions = api_key.permissions or []
         if not permissions:
             return False
+
+        # A platform key has no agent: it may only call the platform APIs it lists exactly. Agent endpoints check
+        # "the key's agent", which a platform key does not have, so they must never accept one.
+        if is_platform_key(api_key):
+            return required_permission in PLATFORM_KEY_PERMISSIONS and required_permission in permissions
 
         # Exact match
         if required_permission in permissions:
