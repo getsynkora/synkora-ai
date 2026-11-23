@@ -25,6 +25,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.models.agent import Agent
 from src.models.agent_api_key import AgentApiKey
 from src.models.agent_llm_config import AgentLLMConfig
@@ -141,6 +142,7 @@ class TenantProvisioningService:
         period_end: datetime | None = None,
     ) -> Tenant:
         # Validate everything before anything is written, so a bad request leaves nothing behind
+        await self._ensure_below_workspace_limit()
         cycle = self._parse_cycle(billing_cycle)
         period_start, period_end = self._clean_period(period_start, period_end)
         if external_ref:
@@ -170,6 +172,34 @@ class TenantProvisioningService:
             raise
         await self.db.refresh(tenant)
         return tenant
+
+    async def workspace_limit(self) -> int:
+        """How many customer workspaces this manager may have: its plan's features.max_managed_tenants, else the default."""
+        features = await self.db.scalar(
+            select(SubscriptionPlan.features)
+            .join(TenantSubscription, TenantSubscription.plan_id == SubscriptionPlan.id)
+            .where(
+                TenantSubscription.tenant_id == self.manager.id,
+                TenantSubscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL]),
+            )
+            .order_by(TenantSubscription.created_at.desc())
+            .limit(1)
+        )
+        value = (features or {}).get("max_managed_tenants")
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            return value
+        return settings.max_managed_tenants_default
+
+    async def _ensure_below_workspace_limit(self) -> None:
+        # Self-serve managers (any tenant with a platform key) must not be able to create workspaces without end
+        limit = await self.workspace_limit()
+        count = await self.db.scalar(
+            select(func.count()).select_from(Tenant).where(Tenant.managed_by_tenant_id == self.manager.id)
+        )
+        if (count or 0) >= limit:
+            raise ProvisioningError(
+                f"Workspace limit reached ({limit}). Upgrade your plan or contact support for more.", 403
+            )
 
     async def update_tenant(self, tenant: Tenant, name: str | None = None, external_ref: str | None = None) -> Tenant:
         if name:

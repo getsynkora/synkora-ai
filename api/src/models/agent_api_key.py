@@ -46,9 +46,9 @@ class AgentApiKey(BaseModel, TenantMixin):
     agent_id = Column(
         UUID(as_uuid=True),
         ForeignKey("agents.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
-        comment="Agent this API key provides access to",
+        comment="Agent this API key provides access to; null for a platform key (tenant-level, platform APIs only)",
     )
 
     key_name = Column(

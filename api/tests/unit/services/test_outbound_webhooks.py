@@ -292,6 +292,7 @@ class TestEmitEvent:
         result = MagicMock()
         result.scalars.return_value.all.return_value = endpoints
         db.execute = AsyncMock(return_value=result)
+        db.scalar = AsyncMock(return_value=None)  # no active platform key with tenants:manage
         return db
 
     async def test_event_goes_to_own_and_managers_endpoints_with_customer_identity(self):
@@ -322,6 +323,18 @@ class TestEmitEvent:
             await hooks.emit_event(db, customer_id, hooks.EVENT_USAGE_THRESHOLD, {})
         owners = next(v for v in db.execute.call_args[0][0].compile().params.values() if isinstance(v, list))
         assert owners == [customer_id]
+
+    async def test_a_self_serve_manager_with_a_platform_key_receives_customer_events(self):
+        manager_id, customer_id = uuid4(), uuid4()
+        customer = MagicMock(id=customer_id, external_ref="c", managed_by_tenant_id=manager_id)
+        manager = MagicMock(id=manager_id, can_manage_tenants=False)
+        db = self._db(customer, [])
+        db.get = AsyncMock(side_effect=lambda model, key: customer if key == customer_id else manager)
+        db.scalar = AsyncMock(return_value=uuid4())  # an active platform key with tenants:manage
+        with patch.object(hooks, "deliver_to"):
+            await hooks.emit_event(db, customer_id, hooks.EVENT_USAGE_THRESHOLD, {})
+        owners = next(v for v in db.execute.call_args[0][0].compile().params.values() if isinstance(v, list))
+        assert set(owners) == {customer_id, manager_id}
 
     async def test_no_endpoints_queues_nothing(self):
         db = self._db(MagicMock(id=uuid4(), external_ref=None, managed_by_tenant_id=None), [])

@@ -212,6 +212,23 @@ def deliver_to(endpoint_id: uuid.UUID, event: dict[str, Any]) -> None:
     deliver_webhook_event.delay(str(endpoint_id), event["id"], event["type"], event)
 
 
+async def has_platform_manager_key(db: AsyncSession, tenant_id: uuid.UUID) -> bool:
+    from src.models.agent_api_key import AgentApiKey
+
+    key_id = await db.scalar(
+        select(AgentApiKey.id)
+        .where(
+            AgentApiKey.tenant_id == tenant_id,
+            AgentApiKey.agent_id.is_(None),
+            AgentApiKey.is_active.is_(True),
+            AgentApiKey.permissions.any("tenants:manage"),
+            or_(AgentApiKey.expires_at.is_(None), AgentApiKey.expires_at > datetime.now(UTC)),
+        )
+        .limit(1)
+    )
+    return key_id is not None
+
+
 async def emit_event(db: AsyncSession, tenant_id: uuid.UUID, event_type: str, data: dict[str, Any]) -> int:
     """
     Queue ``event_type`` for the tenant's own endpoints and its manager's. Returns how many were queued.
@@ -222,9 +239,10 @@ async def emit_event(db: AsyncSession, tenant_id: uuid.UUID, event_type: str, da
         tenant = await db.get(Tenant, tenant_id)
         owner_ids = [tenant_id]
         if tenant is not None and tenant.managed_by_tenant_id:
-            # Only a manager that is still allowed to manage tenants hears about its customers
+            # Only a manager that is still allowed to manage tenants hears about its customers: one an operator
+            # enabled, or one holding an active platform key with tenants:manage (revoking it stops the events)
             manager = await db.get(Tenant, tenant.managed_by_tenant_id)
-            if manager is not None and manager.can_manage_tenants:
+            if manager is not None and (manager.can_manage_tenants or await has_platform_manager_key(db, manager.id)):
                 owner_ids.append(manager.id)
 
         result = await db.execute(
