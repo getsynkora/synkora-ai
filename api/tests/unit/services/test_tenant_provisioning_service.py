@@ -43,14 +43,22 @@ class TestTenantScope:
             await service.get_managed(uuid4())
         assert err.value.status_code == 404
 
-    async def test_lookup_is_restricted_to_tenants_this_manager_created(self, service, db):
+    async def test_lookup_is_restricted_to_tenants_this_manager_created_or_its_own(self, service, db):
         db.execute.return_value = _result(MagicMock())
         tenant_id = uuid4()
         await service.get_managed(tenant_id)
         compiled = db.execute.call_args[0][0].compile()
-        assert "managed_by_tenant_id" in str(compiled)
-        assert MANAGER_ID in compiled.params.values()
+        sql = str(compiled)
+        assert "managed_by_tenant_id" in sql and " OR " in sql
+        assert list(compiled.params.values()).count(MANAGER_ID) == 2
         assert tenant_id in compiled.params.values()
+
+    async def test_own_tenant_plan_cannot_be_changed(self, service):
+        with patch.object(service, "_latest_subscription", AsyncMock()) as latest:
+            with pytest.raises(ProvisioningError) as err:
+                await service.set_subscription(MagicMock(id=MANAGER_ID), plan="Enterprise")
+        assert err.value.status_code == 403
+        latest.assert_not_called()
 
 
 class TestCreateAgentFromTemplate:

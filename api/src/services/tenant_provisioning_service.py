@@ -6,7 +6,8 @@ tenant per customer, puts it on a plan, gives it agents and API keys, and reads 
 Nothing here is specific to an industry or product.
 
 Rules that keep this safe:
-- A manager can only see and change tenants it created (``managed_by_tenant_id``).
+- A manager can only see and change tenants it created (``managed_by_tenant_id``) and its own tenant. It can never
+  change its own tenant's plan.
 - Agents are created from a template agent that belongs to the manager. Only non-secret settings
   are copied: never LLM keys, tool credentials, OAuth links or knowledge-base links.
 - Billing happens outside Synkora. The manager tells Synkora which plan a customer is on and for
@@ -111,9 +112,15 @@ class TenantProvisioningService:
     # ---- tenants -------------------------------------------------------------------------------
 
     async def get_managed(self, tenant_id: uuid.UUID) -> Tenant:
-        """A tenant this manager created. Anything else is reported as not found, never as forbidden."""
+        """
+        A tenant this manager created, or the manager's own tenant (the one its key was created in).
+        Anything else is reported as not found, never as forbidden.
+        """
         result = await self.db.execute(
-            select(Tenant).where(Tenant.id == tenant_id, Tenant.managed_by_tenant_id == self.manager.id)
+            select(Tenant).where(
+                Tenant.id == tenant_id,
+                or_(Tenant.managed_by_tenant_id == self.manager.id, Tenant.id == self.manager.id),
+            )
         )
         tenant = result.scalar_one_or_none()
         if tenant is None:
@@ -326,9 +333,14 @@ class TenantProvisioningService:
         """
         Change a customer's plan, status or billing period.
 
+        Never for the manager's own tenant: any tenant can create a platform key, so this would let it put itself
+        on any plan without paying. Its own plan is changed through Synkora billing.
+
         Billing runs outside Synkora, so this is how a renewal is reported: send ``renew: true`` (or a
         new period). A new period starts every message pool at zero.
         """
+        if tenant.id == self.manager.id:
+            raise ProvisioningError("This workspace's own plan can only be changed from its billing page", 403)
         # Validate everything first: nothing below commits until the request is known to be good
         cycle = self._parse_cycle(billing_cycle)
         period_start, period_end = self._clean_period(period_start, period_end)
