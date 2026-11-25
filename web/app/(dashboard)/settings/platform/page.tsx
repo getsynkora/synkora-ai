@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { apiClient } from '@/lib/api/client'
 import { extractErrorMessage } from '@/lib/api/error'
 import { useProfile } from '@/hooks/useProfile'
+import ExternalBillingWorkspaces from '@/components/platform/ExternalBillingWorkspaces'
 
 interface KeyRotationResult {
   task_id: string
@@ -258,6 +259,8 @@ export default function PlatformSettingsPage() {
           )}
         </div>
       )}
+
+      {isPlatformAdmin && <ExternalBillingWorkspaces />}
 
       {/* Confirm dialog for Start Rotation */}
       {showConfirmDialog && (

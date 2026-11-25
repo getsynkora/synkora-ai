@@ -67,10 +67,13 @@ SCOPED_PERMISSION_PREFIXES = frozenset({"billing", "knowledge", "webhooks", "ten
 # platform keys, which a tenant owner or admin creates on the Platform keys page (or an operator with
 # enable_tenant_provisioning.py).
 OPERATOR_ONLY_PERMISSION_PREFIXES = frozenset({"tenants"})
+# Permissions only a platform key may hold (created on the Platform keys page), never an agent key
+PLATFORM_ONLY_PERMISSIONS = frozenset({"billing:manage"})
 
 # A platform key belongs to the tenant, not to an agent (agent_id is null). It can only use these platform APIs:
-# never chat, conversations, knowledge or handoffs, which all act on one agent.
-PLATFORM_KEY_PERMISSIONS = frozenset({"tenants:manage", "billing:read", "webhooks:manage"})
+# never chat, conversations, knowledge or handoffs, which all act on one agent. billing:manage only works on a
+# tenant a platform operator has set to external billing (Tenant.external_billing).
+PLATFORM_KEY_PERMISSIONS = frozenset({"tenants:manage", "billing:read", "billing:manage", "webhooks:manage"})
 
 
 def is_platform_key(api_key) -> bool:
@@ -107,6 +110,8 @@ def validate_requested_permissions(permissions: list[str]) -> list[str]:
             raise ValueError(f"Invalid permission {permission!r}")
         if permission.split(":", 1)[0] in OPERATOR_ONLY_PERMISSION_PREFIXES:
             raise ValueError(f"Permission {permission!r} can only be granted by a platform operator")
+        if permission in PLATFORM_ONLY_PERMISSIONS:
+            raise ValueError(f"Permission {permission!r} is only for platform keys")
     return permissions
 
 

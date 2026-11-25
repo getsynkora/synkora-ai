@@ -47,6 +47,7 @@ MAX_PLATFORM_KEYS = 20
 PERMISSION_DESCRIPTIONS = {
     "tenants:manage": "Create and manage customer workspaces: plans, usage, agents and their API keys",
     "billing:read": "Read this workspace's plan and usage",
+    "billing:manage": "Set this workspace's plan when it is paid for in your system (a platform admin must allow it)",
     "webhooks:manage": "Register webhooks for usage alerts and plan changes",
 }
 

@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.controllers.agent_api_account import (
     CurrentPlanResponse,
+    SubscriptionRequest,
     UsageHistoryResponse,
     UsageResponse,
     build_plan_response,
@@ -109,16 +110,6 @@ class CreateTenantRequest(BaseModel):
 class UpdateTenantRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     external_ref: str | None = Field(None, max_length=255)
-
-
-class SubscriptionRequest(BaseModel):
-    plan: str | None = Field(None, description="Plan name or id to move the customer to")
-    status: str | None = Field(None, description="ACTIVE, TRIAL, SUSPENDED, CANCELLED or EXPIRED")
-    billing_cycle: str | None = Field(None, description="MONTHLY or YEARLY")
-    period_start: datetime | None = None
-    period_end: datetime | None = Field(None, description="A new period starts every message pool at zero")
-    cancel_at_period_end: bool | None = None
-    renew: bool = Field(False, description="Start a new 30-day period now and reset allowances")
 
 
 class AgentSummary(BaseModel):

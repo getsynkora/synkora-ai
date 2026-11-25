@@ -143,6 +143,14 @@ class Tenant(BaseModel, StatusMixin):
         index=True,
         comment="Managing system's own id for this customer (unique per managing tenant)",
     )
+    # Billed by another system: a platform operator lets the tenant's own platform key (billing:manage) set its plan
+    external_billing = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+        comment="Plan is paid for outside Synkora and set through the API (enabled by a platform operator)",
+    )
 
     # Platform OAuth app preferences
     disabled_platform_oauth_providers = Column(

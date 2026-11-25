@@ -3,13 +3,18 @@ Platform Settings Controller - Admin endpoints for platform configuration
 """
 
 import logging
+import uuid
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import require_platform_admin
+from src.middleware.auth_middleware import get_current_account, require_platform_admin
+from src.models.tenant import Account, Tenant
+from src.services.activity.activity_log_service import ActivityLogService
 from src.services.billing.platform_settings_service import PlatformSettingsService
 
 logger = logging.getLogger(__name__)
@@ -233,3 +238,78 @@ async def dry_run_key_rotation(_: None = Depends(require_platform_admin)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to enqueue key rotation dry-run task: {exc}",
         ) from exc
+
+
+# ---- workspaces billed in another system --------------------------------------------------------
+
+
+class WorkspaceBillingInfo(BaseModel):
+    id: uuid.UUID
+    name: str
+    external_billing: bool
+    created_at: datetime
+
+
+class WorkspaceBillingUpdate(BaseModel):
+    external_billing: bool
+
+
+def _workspace_info(tenant: Tenant) -> WorkspaceBillingInfo:
+    return WorkspaceBillingInfo(
+        id=tenant.id, name=tenant.name, external_billing=bool(tenant.external_billing), created_at=tenant.created_at
+    )
+
+
+@router.get("/workspaces", response_model=list[WorkspaceBillingInfo])
+async def list_workspaces(
+    search: str | None = Query(None, max_length=255, description="Part of the name, or the exact id"),
+    db: AsyncSession = Depends(get_async_db),
+    _: None = Depends(require_platform_admin),
+):
+    """
+    Workspaces matching ``search`` (at most 25), or, without it, every workspace billed in another system.
+    Requires: platform admin
+    """
+    query = select(Tenant).order_by(Tenant.name).limit(25)
+    term = (search or "").strip()
+    if not term:
+        query = query.where(Tenant.external_billing.is_(True))
+    else:
+        conditions = [Tenant.name.ilike(f"%{term.replace('%', '').replace('_', '')}%")]
+        try:
+            conditions.append(Tenant.id == uuid.UUID(term))
+        except ValueError:
+            pass
+        query = query.where(or_(*conditions))
+    rows = await db.execute(query)
+    return [_workspace_info(tenant) for tenant in rows.scalars().all()]
+
+
+@router.patch("/workspaces/{tenant_id}", response_model=WorkspaceBillingInfo)
+async def update_workspace_billing(
+    tenant_id: uuid.UUID,
+    body: WorkspaceBillingUpdate,
+    db: AsyncSession = Depends(get_async_db),
+    account: Account = Depends(get_current_account),
+    _: None = Depends(require_platform_admin),
+):
+    """
+    Allow (or stop) a workspace's own platform key setting its plan, because it is paid for in another system.
+    Requires: platform admin
+    """
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    tenant.external_billing = body.external_billing
+    await db.commit()
+    await db.refresh(tenant)
+    ActivityLogService.queue_activity(
+        tenant_id=tenant.id,
+        account_id=account.id,
+        action="workspace.external_billing_changed",
+        resource_type="tenant",
+        resource_id=tenant.id,
+        details={"external_billing": body.external_billing},
+    )
+    logger.info("External billing of workspace %s set to %s by %s", tenant.id, body.external_billing, account.id)
+    return _workspace_info(tenant)
