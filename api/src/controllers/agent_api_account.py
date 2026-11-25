@@ -4,8 +4,9 @@ Account API - plan and usage for external platforms.
 Lets another product (for example a customer portal) show a tenant's plan, what the plan
 includes, and how much of it has been used, using the same API keys as the Public Agent API.
 
-Authentication: ``Authorization: Bearer <agent api key>`` with the ``billing:read`` permission.
-All data is for the key's own tenant; there is no way to ask about another tenant.
+Authentication: ``Authorization: Bearer <agent api key>`` with the ``billing:read`` permission (``billing:manage`` to
+set the plan of a tenant billed in another system). All data is for the key's own tenant; there is no way to ask about
+or change another tenant.
 """
 
 import logging
@@ -13,8 +14,8 @@ from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,10 +24,14 @@ from src.middleware.agent_api_auth import require_permission
 from src.models.agent_api_key import AgentApiKey
 from src.models.quota_usage import QuotaUsageEvent
 from src.models.subscription_plan import SubscriptionPlan
+from src.models.tenant import Tenant
+from src.services.activity.api_audit import audit_api_action
+from src.services.agent_api.api_key_service import is_platform_key
 from src.services.billing.credit_service import CreditService
 from src.services.billing.plan_restriction_service import PlanRestrictionService
 from src.services.billing.quota_service import QuotaService
 from src.services.billing.subscription_service import SubscriptionService
+from src.services.tenant_provisioning_service import ProvisioningError, TenantProvisioningService
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +88,16 @@ class SubscriptionInfo(BaseModel):
 class CurrentPlanResponse(BaseModel):
     plan: PlanInfo | None
     subscription: SubscriptionInfo | None
+
+
+class SubscriptionRequest(BaseModel):
+    plan: str | None = Field(None, description="Plan name or id to move the customer to")
+    status: str | None = Field(None, description="ACTIVE, TRIAL, SUSPENDED, CANCELLED or EXPIRED")
+    billing_cycle: str | None = Field(None, description="MONTHLY or YEARLY")
+    period_start: datetime | None = None
+    period_end: datetime | None = Field(None, description="A new period starts every message pool at zero")
+    cancel_at_period_end: bool | None = None
+    renew: bool = Field(False, description="Start a new 30-day period now and reset allowances")
 
 
 class PoolUsage(BaseModel):
@@ -177,6 +192,44 @@ async def get_current_plan(
     Requires permission: billing:read
     """
     return await build_plan_response(db, api_key.tenant_id)
+
+
+@router.put("/subscription", response_model=CurrentPlanResponse)
+async def set_subscription(
+    body: SubscriptionRequest,
+    request: Request,
+    api_key: AgentApiKey = Depends(require_permission("billing:manage")),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Set this tenant's plan, status or billing period, for a tenant whose plan is paid for in your own system.
+
+    Report each payment: the plan bought, a renewal (``renew: true`` or a new period, which starts every message
+    pool at zero), or a stop (``status: SUSPENDED``). Only works once a platform administrator has set the tenant to
+    external billing; otherwise any tenant could put itself on any plan.
+    Requires permission: billing:manage
+    """
+    if not is_platform_key(api_key):
+        raise HTTPException(status_code=403, detail="Only a platform key can set the plan")
+    tenant = await db.get(Tenant, api_key.tenant_id)
+    if tenant is None or not tenant.external_billing:
+        raise HTTPException(
+            status_code=403,
+            detail="This workspace's plan is paid for in Synkora. Ask a platform administrator to allow external billing.",
+        )
+    try:
+        await TenantProvisioningService(db, tenant).set_subscription(tenant, **body.model_dump())
+    except ProvisioningError as err:
+        raise HTTPException(status_code=err.status_code, detail=str(err)) from err
+    audit_api_action(
+        api_key,
+        request,
+        "account.subscription_changed",
+        "tenant",
+        resource_id=tenant.id,
+        details=body.model_dump(exclude_none=True, mode="json"),
+    )
+    return await build_plan_response(db, tenant.id)
 
 
 async def build_usage_response(db: AsyncSession, tenant_id: UUID) -> UsageResponse:

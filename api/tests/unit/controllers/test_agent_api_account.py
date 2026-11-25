@@ -311,3 +311,68 @@ class TestRequestedPermissions:
         assert CreateApiKeyRequest(key_name="k", agent_id=uuid4(), permissions=permissions).permissions == permissions
         assert UpdateApiKeyRequest(permissions=permissions).permissions == permissions
         assert UpdateApiKeyRequest().permissions is None
+
+
+class TestSetSubscription:
+    """A tenant billed in another system reports its plan with its own platform key."""
+
+    def _put(self, client, tenant, key=None, body=None):
+        key = key or MagicMock(tenant_id=TENANT, agent_id=None)
+
+        async def authenticate(_request, required_permission=None):
+            assert required_permission == "billing:manage"
+            return key
+
+        db = AsyncMock()
+        db.get.return_value = tenant
+        client.app.dependency_overrides[get_async_db] = lambda: db
+        with (
+            patch.object(AgentApiAuthMiddleware, "authenticate_request", authenticate),
+            patch.object(account, "TenantProvisioningService") as service,
+            patch.object(account, "build_plan_response", AsyncMock(return_value={"plan": None, "subscription": None})),
+            patch.object(account, "audit_api_action") as audit,
+        ):
+            service.return_value.set_subscription = AsyncMock()
+            response = client.put("/api/v1/public/account/subscription", json=body or {"plan": "Growth"})
+        return response, service, audit
+
+    def test_a_tenant_billed_elsewhere_can_set_its_plan(self, client):
+        tenant = MagicMock(id=TENANT, external_billing=True)
+        response, service, audit = self._put(client, tenant, body={"plan": "Growth", "billing_cycle": "MONTHLY"})
+        assert response.status_code == 200
+        kwargs = service.return_value.set_subscription.call_args.kwargs
+        assert kwargs["plan"] == "Growth" and kwargs["billing_cycle"] == "MONTHLY"
+        assert service.return_value.set_subscription.call_args.args == (tenant,)
+        assert audit.call_args.args[2] == "account.subscription_changed"
+
+    def test_a_tenant_billed_in_synkora_cannot_set_its_own_plan(self, client):
+        response, service, _ = self._put(client, MagicMock(id=TENANT, external_billing=False))
+        assert response.status_code == 403
+        service.return_value.set_subscription.assert_not_called()
+
+    def test_an_agent_key_cannot_set_the_plan(self, client):
+        key = MagicMock(tenant_id=TENANT, agent_id=uuid4())
+        response, service, _ = self._put(client, MagicMock(id=TENANT, external_billing=True), key=key)
+        assert response.status_code == 403
+        service.return_value.set_subscription.assert_not_called()
+
+    def test_a_bad_request_is_reported_with_its_status(self, client):
+        from src.services.tenant_provisioning_service import ProvisioningError
+
+        tenant = MagicMock(id=TENANT, external_billing=True)
+        key = MagicMock(tenant_id=TENANT, agent_id=None)
+
+        async def authenticate(_request, required_permission=None):
+            return key
+
+        db = AsyncMock()
+        db.get.return_value = tenant
+        client.app.dependency_overrides[get_async_db] = lambda: db
+        with (
+            patch.object(AgentApiAuthMiddleware, "authenticate_request", authenticate),
+            patch.object(account, "TenantProvisioningService") as service,
+        ):
+            service.return_value.set_subscription = AsyncMock(side_effect=ProvisioningError("Plan not found", 404))
+            response = client.put("/api/v1/public/account/subscription", json={"plan": "Nope"})
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Plan not found"

@@ -46,6 +46,16 @@ class TestPlatformKeyPermissions:
     def test_agent_permissions_stored_on_a_platform_key_still_do_nothing(self):
         assert not AgentApiKeyService.check_permission(_key(permissions=["*", "chat"]), "chat")
 
+    def test_billing_manage_can_be_given_to_a_platform_key_but_never_to_an_agent_key(self):
+        from pydantic import ValidationError
+
+        from src.schemas.agent_api import CreateApiKeyRequest
+
+        assert validate_platform_permissions(["billing:manage"]) == ["billing:manage"]
+        assert AgentApiKeyService.check_permission(_key(permissions=["billing:manage"]), "billing:manage")
+        with pytest.raises(ValidationError):
+            CreateApiKeyRequest(key_name="k", agent_id=uuid4(), permissions=["billing:manage"])
+
     def test_a_platform_permission_must_be_listed(self):
         assert not AgentApiKeyService.check_permission(_key(permissions=["billing:read"]), "tenants:manage")
 

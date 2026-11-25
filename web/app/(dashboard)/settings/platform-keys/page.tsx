@@ -10,6 +10,7 @@ import { platformKeysApi, type PlatformKey } from '@/lib/api/platform-keys'
 const PERMISSION_LABELS: Record<string, string> = {
   'tenants:manage': 'Manage customer workspaces',
   'billing:read': 'Read plan and usage',
+  'billing:manage': 'Set the plan (billed in your system)',
   'webhooks:manage': 'Manage webhooks',
 }
 
