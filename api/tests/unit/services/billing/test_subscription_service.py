@@ -75,6 +75,18 @@ class TestSubscriptionService:
         assert len(result) == 2
         mock_db.execute.assert_called_once()
 
+    async def test_list_active_plans_for_the_pricing_page_leaves_out_hidden_plans(self, service, mock_db):
+        mock_db.execute.return_value = MagicMock()
+
+        def where_clause():
+            return str(mock_db.execute.call_args[0][0]).split("WHERE", 1)[1]
+
+        await service.list_active_plans(public_only=True)
+        assert "subscription_plans.is_public" in where_clause()
+
+        await service.list_active_plans()
+        assert "subscription_plans.is_public" not in where_clause()
+
     async def test_get_tenant_subscription(self, service, mock_db, mock_subscription):
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_subscription

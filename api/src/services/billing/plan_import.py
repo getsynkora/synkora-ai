@@ -112,6 +112,8 @@ def _parse_plan(raw: dict) -> dict:
         values["credits_rollover"] = bool(raw["credits_rollover"])
     if "is_active" in raw:
         values["is_active"] = bool(raw["is_active"])
+    if "is_public" in raw:
+        values["is_public"] = bool(raw["is_public"])
     if "quota_pools" in raw:
         values["quota_pools"] = validate_quota_pools(raw["quota_pools"]) or None
     for column in _OPTIONAL_COLUMNS:

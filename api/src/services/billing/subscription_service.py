@@ -36,11 +36,12 @@ class SubscriptionService:
         )
         return result.scalar_one_or_none()
 
-    async def list_active_plans(self) -> list[SubscriptionPlan]:
-        """List all active subscription plans"""
-        result = await self.db.execute(
-            select(SubscriptionPlan).where(SubscriptionPlan.is_active).order_by(SubscriptionPlan.price_monthly)
-        )
+    async def list_active_plans(self, public_only: bool = False) -> list[SubscriptionPlan]:
+        """List all active subscription plans; ``public_only`` leaves out plans hidden from the pricing page."""
+        query = select(SubscriptionPlan).where(SubscriptionPlan.is_active)
+        if public_only:
+            query = query.where(SubscriptionPlan.is_public)
+        result = await self.db.execute(query.order_by(SubscriptionPlan.price_monthly))
         return list(result.scalars().all())
 
     async def get_tenant_subscription(self, tenant_id: UUID) -> TenantSubscription | None:
@@ -257,9 +258,9 @@ class SubscriptionService:
         """Get active subscription for a tenant (async version)"""
         return await self.get_tenant_subscription(tenant_id)
 
-    async def get_available_plans(self) -> list[SubscriptionPlan]:
+    async def get_available_plans(self, public_only: bool = False) -> list[SubscriptionPlan]:
         """Get all available subscription plans (alias for list_active_plans)"""
-        return await self.list_active_plans()
+        return await self.list_active_plans(public_only=public_only)
 
     async def get_subscription_payment_provider(self, tenant_id: UUID) -> str | None:
         """Get the payment provider for a tenant's active subscription"""

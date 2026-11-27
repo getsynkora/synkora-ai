@@ -213,6 +213,7 @@ class TestSubscriptionEndpoints:
         assert len(data) == 1
         assert data[0]["name"] == "Pro Plan"
         assert data[0]["price_monthly"] == 29.99
+        mock_subscription.get_available_plans.assert_awaited_once_with(public_only=True)
 
     def test_cancel_subscription(self, client):
         """Test cancelling subscription."""
