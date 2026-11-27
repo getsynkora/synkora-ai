@@ -567,7 +567,8 @@ async def get_subscription_plans(db: AsyncSession = Depends(get_async_db)):
         pass
 
     subscription_service = SubscriptionService(db)
-    plans = await subscription_service.get_available_plans()
+    # The pricing page: plans set only through the API by another billing system are left out
+    plans = await subscription_service.get_available_plans(public_only=True)
 
     result = [
         SubscriptionPlanResponse(

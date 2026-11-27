@@ -9,6 +9,7 @@ from enum import StrEnum
 
 from sqlalchemy import Boolean, Column, Integer, Numeric, String, Text
 from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import true as sa_true
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, relationship
 
@@ -175,6 +176,14 @@ class SubscriptionPlan(BaseModel):
         default=True,
         index=True,
         comment="Whether plan is currently available for subscription",
+    )
+
+    is_public = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default=sa_true(),
+        comment="Shown on the pricing page; off for plans only set through the API by another billing system",
     )
 
     stripe_product_id = Column(

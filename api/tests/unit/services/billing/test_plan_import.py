@@ -185,3 +185,10 @@ class TestPlanValueLimits:
                 db,
                 [{"name": "A", "price_monthly": 0, "tier": "FREE"}, {"name": "B", "price_monthly": 0, "tier": "FREE"}],
             )
+
+
+def test_a_plan_can_be_hidden_from_the_pricing_page():
+    from src.services.billing.plan_import import _parse_plan
+
+    assert _parse_plan({"name": "Partner", "is_public": False})["values"]["is_public"] is False
+    assert "is_public" not in _parse_plan({"name": "Partner"})["values"]  # updating a plan leaves it as it was
