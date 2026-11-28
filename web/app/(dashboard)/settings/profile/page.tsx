@@ -90,7 +90,7 @@ export default function ProfilePage() {
   const fetchSessions = useCallback(async () => {
     setSessionsLoading(true);
     try {
-      const res = await apiClient.request('GET', '/console/api/me/sessions');
+      const res = await apiClient.request('GET', '/api/v1/profile/me/sessions');
       const data = (res as any)?.data ?? res;
       setSessions(data?.sessions ?? []);
     } catch {
@@ -109,7 +109,7 @@ export default function ProfilePage() {
     setSessions(prev => prev.filter(s => s.session_id !== sessionId));
     setRevokingId(sessionId);
     try {
-      await apiClient.request('DELETE', `/console/api/me/sessions/${sessionId}`);
+      await apiClient.request('DELETE', `/api/v1/profile/me/sessions/${sessionId}`);
       toast.success('Session revoked');
     } catch {
       toast.error('Failed to revoke session');
@@ -125,7 +125,7 @@ export default function ProfilePage() {
     // Optimistic: keep only current session
     setSessions(prev => prev.filter(s => s.is_current));
     try {
-      await apiClient.request('DELETE', '/console/api/me/sessions');
+      await apiClient.request('DELETE', '/api/v1/profile/me/sessions');
       toast.success('All other sessions revoked');
     } catch {
       toast.error('Failed to revoke sessions');

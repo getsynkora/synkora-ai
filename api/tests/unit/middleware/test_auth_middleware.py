@@ -263,6 +263,20 @@ class TestGetCurrentTenantId:
         result = await get_current_tenant_id(payload={"tenant_id": str(tenant_id)}, _current_account=MagicMock(), db=db)
         assert result == tenant_id
 
+    async def test_a_suspended_workspace_cannot_be_used(self):
+        """The membership check only accepts an ACTIVE workspace, so suspending one locks out open sessions."""
+        db = AsyncMock()
+        result_row = MagicMock()
+        result_row.scalar_one_or_none.return_value = None  # no ACTIVE workspace with this membership
+        db.execute.return_value = result_row
+        with patch("src.middleware.auth_middleware.get_redis_async", side_effect=RuntimeError("no redis")):
+            with pytest.raises(HTTPException) as exc_info:
+                await get_current_tenant_id(
+                    payload={"tenant_id": str(uuid.uuid4())}, _current_account=MagicMock(), db=db
+                )
+        assert exc_info.value.status_code == 403
+        assert "tenants.status" in str(db.execute.call_args.args[0])
+
     def test_tenant_id_dependency_requires_current_account(self):
         """Tenant-only routes must still enforce revocation and account status."""
         param = signature(get_current_tenant_id).parameters["_current_account"]

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useRouter } from 'next/navigation'
 import { useSubscription, useCredits } from '@/hooks/useBilling'
@@ -17,8 +18,28 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
   const router = useRouter()
   const { subscription, loading: subscriptionLoading } = useSubscription()
   const { balance, loading: balanceLoading } = useCredits()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close the user menu on a click outside it or on Escape
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
 
   const handleSignOut = async () => {
+    setMenuOpen(false)
     await signOut()
     router.push('/signin')
   }
@@ -78,8 +99,14 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         )}
 
         {/* User Menu */}
-        <div className="relative group">
-          <button className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white">
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+            className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
@@ -89,17 +116,21 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
             </svg>
           </button>
 
-          {/* Dropdown Menu */}
-          <div className="dashboard-surface absolute right-0 mt-2 invisible w-48 rounded-2xl opacity-0 transition-[color,background-color,border-color,box-shadow,opacity,transform] group-hover:visible group-hover:opacity-100">
-            <div className="py-1">
-              <button
-                onClick={handleSignOut}
-                className="w-full rounded-2xl px-4 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-black/5"
-              >
-                {t('signOut')}
-              </button>
+          {/* Dropdown Menu: opens on click, so it works with a mouse, touch and the keyboard */}
+          {menuOpen && (
+            <div role="menu" className="dashboard-surface absolute right-0 top-full z-40 mt-2 w-48 rounded-2xl">
+              <div className="py-1">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleSignOut}
+                  className="w-full rounded-2xl px-4 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-black/5"
+                >
+                  {t('signOut')}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </header>

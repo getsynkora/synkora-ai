@@ -629,8 +629,12 @@ class AuthService:
         """
         from sqlalchemy.orm import selectinload
 
+        # Workspaces a platform admin suspended are left out, so sign-in never opens one
         result = await db.execute(
-            select(TenantAccountJoin).filter_by(account_id=account_id).options(selectinload(TenantAccountJoin.tenant))
+            select(TenantAccountJoin)
+            .join(Tenant, Tenant.id == TenantAccountJoin.tenant_id)
+            .where(TenantAccountJoin.account_id == account_id, Tenant.status == TenantStatus.ACTIVE)
+            .options(selectinload(TenantAccountJoin.tenant))
         )
         memberships = list(result.scalars().all())
 

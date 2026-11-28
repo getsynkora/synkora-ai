@@ -5,6 +5,7 @@ Platform Settings Controller - Admin endpoints for platform configuration
 import logging
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_account, require_platform_admin
-from src.models.tenant import Account, Tenant
+from src.models.tenant import Account, AccountRole, AccountStatus, Tenant, TenantAccountJoin, TenantStatus
 from src.services.activity.activity_log_service import ActivityLogService
 from src.services.billing.platform_settings_service import PlatformSettingsService
 
@@ -240,29 +241,77 @@ async def dry_run_key_rotation(_: None = Depends(require_platform_admin)):
         ) from exc
 
 
-# ---- workspaces billed in another system --------------------------------------------------------
+# ---- workspaces: status, owner and billing ---------------------------------------------------------
 
 
-class WorkspaceBillingInfo(BaseModel):
+class WorkspaceOwner(BaseModel):
     id: uuid.UUID
     name: str
+    email: str
+    # INACTIVE until the email address is verified; SUSPENDED when a platform admin stopped the account
+    status: str
+
+
+class WorkspaceInfo(BaseModel):
+    id: uuid.UUID
+    name: str
+    status: str
     external_billing: bool
     created_at: datetime
+    owner: WorkspaceOwner | None
 
 
-class WorkspaceBillingUpdate(BaseModel):
-    external_billing: bool
+class WorkspaceUpdate(BaseModel):
+    status: Literal["ACTIVE", "SUSPENDED"] | None = None
+    external_billing: bool | None = None
 
 
-def _workspace_info(tenant: Tenant) -> WorkspaceBillingInfo:
-    return WorkspaceBillingInfo(
-        id=tenant.id, name=tenant.name, external_billing=bool(tenant.external_billing), created_at=tenant.created_at
+class OwnerStatusUpdate(BaseModel):
+    # ACTIVE also marks the email address verified, for an owner who never got the verification email
+    status: Literal["ACTIVE", "SUSPENDED"]
+
+
+async def _owners(db: AsyncSession, tenant_ids: list[uuid.UUID]) -> dict[uuid.UUID, Account]:
+    """The first owner of each workspace."""
+    if not tenant_ids:
+        return {}
+    rows = await db.execute(
+        select(TenantAccountJoin.tenant_id, Account)
+        .join(Account, Account.id == TenantAccountJoin.account_id)
+        .where(TenantAccountJoin.tenant_id.in_(tenant_ids), TenantAccountJoin.role == AccountRole.OWNER)
+        .order_by(TenantAccountJoin.created_at)
+    )
+    owners: dict[uuid.UUID, Account] = {}
+    for tenant_id, owner in rows.all():
+        owners.setdefault(tenant_id, owner)
+    return owners
+
+
+def _workspace_info(tenant: Tenant, owner: Account | None) -> WorkspaceInfo:
+    return WorkspaceInfo(
+        id=tenant.id,
+        name=tenant.name,
+        status=str(tenant.status),
+        external_billing=bool(tenant.external_billing),
+        created_at=tenant.created_at,
+        owner=WorkspaceOwner(id=owner.id, name=owner.name, email=owner.email, status=str(owner.status))
+        if owner
+        else None,
     )
 
 
-@router.get("/workspaces", response_model=list[WorkspaceBillingInfo])
+async def _workspace_or_404(db: AsyncSession, tenant_id: uuid.UUID) -> Tenant:
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    return tenant
+
+
+@router.get("/workspaces", response_model=list[WorkspaceInfo])
 async def list_workspaces(
-    search: str | None = Query(None, max_length=255, description="Part of the name, or the exact id"),
+    search: str | None = Query(
+        None, max_length=255, description="Part of the name, the exact id, or the owner's email"
+    ),
     db: AsyncSession = Depends(get_async_db),
     _: None = Depends(require_platform_admin),
 ):
@@ -275,41 +324,99 @@ async def list_workspaces(
     if not term:
         query = query.where(Tenant.external_billing.is_(True))
     else:
-        conditions = [Tenant.name.ilike(f"%{term.replace('%', '').replace('_', '')}%")]
+        pattern = f"%{term.replace('%', '').replace('_', '')}%"
+        owned_by_email = (
+            select(TenantAccountJoin.tenant_id)
+            .join(Account, Account.id == TenantAccountJoin.account_id)
+            .where(TenantAccountJoin.role == AccountRole.OWNER, Account.email.ilike(pattern))
+        )
+        conditions = [Tenant.name.ilike(pattern), Tenant.id.in_(owned_by_email)]
         try:
             conditions.append(Tenant.id == uuid.UUID(term))
         except ValueError:
             pass
         query = query.where(or_(*conditions))
-    rows = await db.execute(query)
-    return [_workspace_info(tenant) for tenant in rows.scalars().all()]
+    tenants = (await db.execute(query)).scalars().all()
+    owners = await _owners(db, [tenant.id for tenant in tenants])
+    return [_workspace_info(tenant, owners.get(tenant.id)) for tenant in tenants]
 
 
-@router.patch("/workspaces/{tenant_id}", response_model=WorkspaceBillingInfo)
-async def update_workspace_billing(
+@router.patch("/workspaces/{tenant_id}", response_model=WorkspaceInfo)
+async def update_workspace(
     tenant_id: uuid.UUID,
-    body: WorkspaceBillingUpdate,
+    body: WorkspaceUpdate,
     db: AsyncSession = Depends(get_async_db),
     account: Account = Depends(get_current_account),
     _: None = Depends(require_platform_admin),
 ):
     """
-    Allow (or stop) a workspace's own platform key setting its plan, because it is paid for in another system.
+    Suspend or reactivate a workspace (a suspended one cannot be used from the dashboard or with its API keys), or allow
+    (or stop) its own platform key setting its plan because it is paid for in another system.
     Requires: platform admin
     """
-    tenant = await db.get(Tenant, tenant_id)
-    if tenant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
-    tenant.external_billing = body.external_billing
+    tenant = await _workspace_or_404(db, tenant_id)
+    changes = body.model_dump(exclude_none=True)
+    if not changes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nothing to change")
+    if body.status == TenantStatus.SUSPENDED:
+        own = await db.execute(
+            select(TenantAccountJoin.id).where(
+                TenantAccountJoin.tenant_id == tenant.id, TenantAccountJoin.account_id == account.id
+            )
+        )
+        if own.first() is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot suspend your own workspace")
+    if body.status is not None:
+        tenant.status = TenantStatus(body.status)
+    if body.external_billing is not None:
+        tenant.external_billing = body.external_billing
     await db.commit()
     await db.refresh(tenant)
     ActivityLogService.queue_activity(
         tenant_id=tenant.id,
         account_id=account.id,
-        action="workspace.external_billing_changed",
+        action="workspace.updated_by_platform_admin",
         resource_type="tenant",
         resource_id=tenant.id,
-        details={"external_billing": body.external_billing},
+        details=changes,
     )
-    logger.info("External billing of workspace %s set to %s by %s", tenant.id, body.external_billing, account.id)
-    return _workspace_info(tenant)
+    logger.info("Workspace %s changed by platform admin %s: %s", tenant.id, account.id, changes)
+    owners = await _owners(db, [tenant.id])
+    return _workspace_info(tenant, owners.get(tenant.id))
+
+
+@router.patch("/workspaces/{tenant_id}/owner", response_model=WorkspaceInfo)
+async def update_workspace_owner(
+    tenant_id: uuid.UUID,
+    body: OwnerStatusUpdate,
+    db: AsyncSession = Depends(get_async_db),
+    account: Account = Depends(get_current_account),
+    _: None = Depends(require_platform_admin),
+):
+    """
+    Activate the workspace owner's account (marking the email address verified) or suspend it. A suspended account
+    cannot sign in, and its open sessions stop working at once.
+    Requires: platform admin
+    """
+    tenant = await _workspace_or_404(db, tenant_id)
+    owner = (await _owners(db, [tenant.id])).get(tenant.id)
+    if owner is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This workspace has no owner")
+    if owner.id == account.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot change your own account")
+    owner.status = AccountStatus(body.status)
+    if body.status == AccountStatus.ACTIVE:
+        owner.email_verification_token = None  # verified by a platform admin; an old link no longer applies
+    await db.commit()
+    await db.refresh(tenant)
+    await db.refresh(owner)
+    ActivityLogService.queue_activity(
+        tenant_id=tenant.id,
+        account_id=account.id,
+        action="account.status_changed_by_platform_admin",
+        resource_type="account",
+        resource_id=owner.id,
+        details={"status": body.status},
+    )
+    logger.info("Owner %s of workspace %s set to %s by platform admin %s", owner.id, tenant.id, body.status, account.id)
+    return _workspace_info(tenant, owner)

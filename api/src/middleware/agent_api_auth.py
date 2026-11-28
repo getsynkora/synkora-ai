@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
 from src.models.agent_api_key import AgentApiKey
+from src.models.tenant import Tenant, TenantStatus
 from src.services.agent_api.api_key_service import AgentApiKeyService
 from src.services.agents.security import decrypt_value
 
@@ -72,11 +73,14 @@ class AgentApiAuthMiddleware:
 
         # Query candidates matching the key prefix (indexed lookup)
         # This significantly reduces the number of decryption operations
+        # A key of a workspace a platform admin suspended does not work
         result = await db.execute(
             select(AgentApiKey)
+            .join(Tenant, Tenant.id == AgentApiKey.tenant_id)
             .where(
                 AgentApiKey.is_active == True,  # noqa: E712
                 AgentApiKey.key_prefix == key_prefix,
+                Tenant.status == TenantStatus.ACTIVE,
             )
             .limit(10)  # SECURITY: Limit results to prevent memory exhaustion
         )
