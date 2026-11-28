@@ -230,12 +230,17 @@ async def get_current_tenant_id(
         # Redis down — fall through to DB query
         pass
 
-    from src.models import TenantAccountJoin
+    from src.models import Tenant, TenantAccountJoin
+    from src.models.tenant import TenantStatus
 
+    # A workspace a platform admin suspended cannot be used, even with a session opened before
     result = await db.execute(
-        select(TenantAccountJoin).where(
+        select(TenantAccountJoin)
+        .join(Tenant, Tenant.id == TenantAccountJoin.tenant_id)
+        .where(
             TenantAccountJoin.tenant_id == tenant_id,
             TenantAccountJoin.account_id == account_id,
+            Tenant.status == TenantStatus.ACTIVE,
         )
     )
     if result.scalar_one_or_none() is None:

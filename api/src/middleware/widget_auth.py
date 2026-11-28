@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
 from src.models.agent_widget import AgentWidget
+from src.models.tenant import Tenant, TenantStatus
 from src.services.agents.security import decrypt_value
 
 logger = logging.getLogger(__name__)
@@ -187,12 +188,15 @@ class WidgetAuthMiddleware:
                 pass
             # Cache entry present but key didn't match (e.g. stale after regen) → fall through
 
-        # Slow path: DB lookup + populate cache on success
+        # Slow path: DB lookup + populate cache on success. A widget of a workspace a platform admin suspended does
+        # not work (once its cache entry expires).
         result = await db.execute(
             select(AgentWidget)
+            .join(Tenant, Tenant.id == AgentWidget.tenant_id)
             .filter(
                 AgentWidget.is_active == True,  # noqa: E712
                 AgentWidget.key_prefix == key_prefix,
+                Tenant.status == TenantStatus.ACTIVE,
             )
             .limit(10)
         )
